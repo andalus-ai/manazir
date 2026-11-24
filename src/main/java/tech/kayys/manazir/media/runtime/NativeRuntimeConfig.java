@@ -22,7 +22,7 @@ public record NativeRuntimeConfig(List<NativeLibrary> libraries, boolean failFas
         return new NativeRuntimeConfig(List.of(
                 NativeLibrary.AVUTIL,
                 NativeLibrary.SWRESAMPLE,
-                NativeLibrary.SWscale,
+                NativeLibrary.SWSCALE,
                 NativeLibrary.AVCODEC,
                 NativeLibrary.AVFORMAT,
                 NativeLibrary.AVFILTER), false);
