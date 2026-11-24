@@ -1,34 +1,29 @@
-# Agent instructions for Manazir
+# AGENTS.md — Manazir
 
 ## Mission
+Manazir is the reusable Java-native media execution layer for the Andalus ecosystem. It owns media-format semantics and safe FFmpeg integration, not product workflows such as Dalang projects, editing timelines, clipper UX or agent orchestration.
 
-Build a reusable Java-native media and FFmpeg integration layer. Manazir owns media execution primitives and media-format semantics; it does not own product workflows such as Dalang projects, editing timelines, clipper UX, or agent orchestration.
+## Read first
+README.md; docs/architecture/FFM_FOUNDATION.md; docs/architecture/ARCHITECTURE.md; docs/architecture/DIAGRAMS.md; docs/development/BUILDING.md; docs/roadmap/ROADMAP.md.
 
-## Repository baseline
-
-The initial source snapshot consists of generated jextract Java FFM bindings in `src/main/java/tech/kayys/manazir/avutil`. The generated classes are low-level ABI bindings, not a stable end-user API. Before changing generated files, inspect the generation inputs, jextract version, FFmpeg headers/version, target platform, and reproducibility strategy.
-
-Do not claim a build or tests pass until a reproducible build and tests exist and have actually been run.
+## Source baseline
+The repository includes generated jextract Java FFM bindings under avutil and handwritten API/runtime work. Generated declarations are low-level ABI-specific implementation, not a stable consumer API. Before editing generated code, establish FFmpeg headers/version, jextract version, generation command, target platform and reproducibility. Verify current Maven/JDK assumptions; do not infer supported native deployment matrix from source compiling.
 
 ## Architecture rules
-
-- Keep generated FFM bindings isolated from stable public Java contracts.
-- Keep native loading lazy and explicit; ordinary API type loading must not require local FFmpeg native libraries.
-- Define ownership rules for every native allocation, callback, arena, and returned segment.
-- Represent timestamps as integer ticks with rational time bases. Preserve source time bases and distinguish stream, packet, frame, and container timestamps.
-- Use typed options and argument-safe process invocation. Never concatenate user-provided media paths or filter expressions into shell command strings.
-- Bound process duration, memory, temporary storage, output size, and concurrency.
-- Support cancellation, progress, structured diagnostics, and deterministic cleanup.
-- Keep backend-specific details behind interfaces so native FFM and process-based execution can coexist.
-- Do not introduce Dalang, Andalus agent, or AQLI domain dependencies into the core media API.
+1. Layer generated bindings -> explicit native runtime -> typed public media API -> backend SPI/adapters -> product integrations.
+2. Keep native loading lazy and explicit. Loading API types must not load native libraries.
+3. Define ownership/lifetime for every arena, allocation, callback, handle and returned buffer. Never return a segment whose arena has closed.
+4. Represent time as integer ticks and rational timebase. Preserve source stream, packet and decoded-frame timestamp distinctions.
+5. Keep native pointers, MemorySegment, generated structs and ABI enums out of public APIs.
+6. Use typed options. Process backend uses argument vectors; never interpolate user paths/options into shell strings.
+7. Bound duration, memory, temporary storage, output size and concurrency.
+8. Support cancellation, progress, structured diagnostics and deterministic cleanup.
+9. Backend-specific details stay behind interfaces; native FFM and isolated process backend may coexist.
+10. No Dalang, Andalus-agent or AQLI product-domain dependencies in core media API.
+11. OS library-load success is not ABI/symbol verification; do not advertise capabilities before checks pass.
 
 ## Implementation workflow
+Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
 
-1. Inspect existing source and generated-code provenance before designing new APIs.
-2. Establish a reproducible build and a minimal test baseline before broad implementation.
-3. Add typed contracts and tests before exposing native operations.
-4. Validate native ABI assumptions on supported platforms; never infer portability from a successful compile alone.
-5. Keep generated code changes separate from handwritten API changes where possible.
-6. Run the narrowest relevant tests, then the full build; report exactly what was and was not executed.
-
-See `docs/roadmap/ROADMAP.md` for the staged implementation plan.
+## Definition of done
+Public contract has lifecycle, failure, cancellation, resource and compatibility semantics; tests and examples cover it; docs and roadmap are updated; no unverified native compatibility claims.
