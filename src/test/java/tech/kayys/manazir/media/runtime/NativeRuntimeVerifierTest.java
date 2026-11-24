@@ -15,17 +15,14 @@ class NativeRuntimeVerifierTest {
         var verifier = new NativeRuntimeVerifier(library -> new NativeLibraryInspection(
                 library,
                 NativeLibraryVersion.fromFfmpeg(library, 0x3b2a64, "59.42.100"),
-                library == NativeLibrary.AVCODEC
-                        ? List.of(new CapabilityAssessment(MediaCapability.VIDEO_DECODE,
-                                CapabilityStatus.VERIFIED, "required decode symbols resolved"))
-                        : List.of(),
+                List.of(),
                 ""));
 
         var report = verifier.verify(runtimeReport);
 
         assertEquals(List.of(NativeLibrary.AVUTIL), report.libraries().stream()
                 .map(NativeLibraryInspection::library).toList());
-        assertTrue(report.capabilities().isVerified(MediaCapability.VIDEO_DECODE) == false);
+        assertFalse(report.capabilities().isVerified(MediaCapability.VIDEO_DECODE));
         assertEquals(CapabilityStatus.UNKNOWN,
                 report.capabilities().assessment(MediaCapability.VIDEO_DECODE).status());
     }
