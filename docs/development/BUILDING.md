@@ -13,10 +13,25 @@ The current generated FFM binding snapshot targets the Java Foreign Function & M
 mvn test
 ```
 
-The unit tests for the public time value types do not require FFmpeg native libraries. The generated binding source is compiled as part of the current source tree; verify this on the target JDK before treating the build as a stable release baseline.
+The public timestamp and native-runtime contract tests use injected loaders and do not require FFmpeg native libraries. The generated binding source is compiled as part of the current source tree; verify this on the target JDK before treating the build as a stable release baseline.
+
+## Native runtime initialization
+
+Native loading is explicit:
+
+```java
+var report = NativeRuntime.system()
+    .initialize(NativeRuntimeConfig.ffmpegDefaults());
+
+if (!report.successful()) {
+    report.failures().forEach(System.err::println);
+}
+```
+
+Use fail-fast configuration when startup must stop if a required library is unavailable. Merely referencing Manazir API classes does not load native libraries.
+
+A successful OS-level load does not yet verify FFmpeg ABI compatibility or required symbol availability. Do not advertise probe/decode/encode capabilities until version and symbol checks are implemented.
 
 ## Native runtime status
-
-No native FFmpeg runtime bootstrap or capability discovery is provided yet. Do not assume that the presence of generated `avutil` declarations means the native library is installed, ABI-compatible, or loadable.
 
 The FFmpeg header version, jextract version, generation command, and supported OS/architecture matrix remain to be pinned. Native integration tests must be opt-in until that matrix is established.
