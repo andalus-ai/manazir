@@ -18,6 +18,8 @@ class NativeRuntimeTest {
                 List.of(NativeLibrary.AVUTIL, NativeLibrary.AVCODEC), true));
 
         assertTrue(report.successful());
+        assertTrue(report.hasLibrary(NativeLibrary.AVUTIL));
+        assertEquals(List.of(NativeLibrary.AVUTIL, NativeLibrary.AVCODEC), report.loadedLibraries());
         assertEquals(List.of("avutil", "avcodec"), loaded);
     }
 
