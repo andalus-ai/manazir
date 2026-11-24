@@ -1,29 +1,20 @@
 # FFM and native runtime foundation
 
 ## Layers
-
-1. Generated jextract declarations: low-level ABI-specific implementation only.
-2. Native runtime: explicit loading, diagnostics, version/capability checks, and lifecycle.
+1. Generated jextract declarations: ABI-specific implementation only.
+2. Native runtime: explicit loading, platform/version/symbol verification, capabilities and lifecycle.
 3. Typed media API: stable Java records and service interfaces.
-4. Backend adapters: FFM or process-based implementations.
+4. Backend adapters: FFM or process-based implementation.
 5. Product integrations: Dalang consumes typed APIs only.
 
 ## Explicit initialization
+Use the explicit NativeRuntime initialization API described in BUILDING.md. Constructing API values, timestamps or reports must not load native code. The current default library order is a load attempt strategy, not an ABI guarantee. In non-fail-fast mode return all load diagnostics; fail-fast mode stops and retains partial report.
 
-Use `NativeRuntime.system().initialize(NativeRuntimeConfig.ffmpegDefaults())` to request loading of the configured FFmpeg libraries. Constructing the runtime, config, timestamp, or report types does not load native code.
+## Verification states
+OS System.loadLibrary success proves only that a library was loaded by the platform loader. It does not prove generated bindings match the ABI or required symbols exist. Represent loaded-but-unverified separately from verified. Query FFmpeg library versions and required symbols before advertising probe/decode/encode capabilities.
 
-The default order is avutil, swresample, swscale, avcodec, avformat, avfilter. This is a pragmatic dependency-oriented order, not an ABI compatibility guarantee. The actual supported FFmpeg version matrix and platform packaging still need to be pinned.
+## Memory safety
+Never load native code in static initializers. Never expose generated structs, native pointers or FFM segments in public contracts. Scope arenas/handles and callbacks explicitly. Never return memory after its owner closes. Do not claim native libraries can be unloaded safely.
 
-In non-fail-fast mode, initialization attempts every configured library and returns a report containing successful loads and diagnostics for failures. In fail-fast mode, the first failure stops initialization and throws `NativeRuntimeException` with the partial report.
-
-## Important limitation
-
-A successful `System.loadLibrary` call only confirms that the operating system loader loaded the named library. It does not prove that generated bindings match the library ABI or that required FFmpeg symbols are available. A later runtime verification layer must query library versions and required symbols before advertising media capabilities.
-
-## Safety
-
-- Never load native code in static initializers.
-- Do not expose FFM `MemorySegment`, native pointers, or generated structs from public APIs.
-- Keep native memory ownership scoped and explicit.
-- Use typed options rather than arbitrary command strings.
-- Treat native initialization as process-level state; do not claim that libraries can be safely unloaded.
+## Backend policy
+Keep FFM implementation internal. A process backend may be added for isolation/portability, using argument vectors and typed filter plans. Backend selection must be explicit and capability-aware.
