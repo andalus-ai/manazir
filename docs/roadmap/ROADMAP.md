@@ -11,14 +11,17 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 ## M1 — Reproducible build and runtime foundation
 
-- [ ] Add a reproducible Maven build after confirming JDK and native toolchain requirements.
+- [x] Add an initial Maven build targeting Java 22 (baseline is provisional pending a clean JDK 22 build).
 - [ ] Pin and document FFmpeg/jextract versions and generation inputs.
 - [ ] Separate generated source output from handwritten source.
-- [ ] Add explicit native runtime bootstrap and capability/version diagnostics.
-- [ ] Add exact rational/time-base value types and conversion tests.
+- [x] Add explicit native library bootstrap, configurable load order, and structured load diagnostics.
+- [x] Add typed version/inspection contracts and a conservative capability registry.
+- [ ] Implement a concrete FFmpeg/Jextract inspector for version functions and required-symbol verification.
+- [ ] Define and test the supported FFmpeg ABI/version matrix.
+- [x] Add exact rational/time-base value types and conversion tests.
 - [ ] Add CI for compile/tests without requiring native FFmpeg, plus an opt-in native integration profile.
 
-**Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report capabilities; exact timestamp semantics are tested.
+**Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified capabilities; exact timestamp semantics are tested.
 
 ## M2 — Typed media probe and extraction
 
