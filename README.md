@@ -35,4 +35,4 @@ See [building Manazir](docs/development/BUILDING.md).
 
 ## Architecture
 
-See [the FFM foundation architecture](docs/architecture/FFM_FOUNDATION.md) and [the roadmap](docs/roadmap/ROADMAP.md).
+See [architecture overview](docs/architecture/ARCHITECTURE.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
