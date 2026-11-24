@@ -4,7 +4,7 @@ package tech.kayys.manazir.media.runtime;
 public enum NativeLibrary {
     AVUTIL("avutil"),
     SWRESAMPLE("swresample"),
-    SWscale("swscale"),
+    SWSCALE("swscale"),
     AVCODEC("avcodec"),
     AVFORMAT("avformat"),
     AVFILTER("avfilter");
