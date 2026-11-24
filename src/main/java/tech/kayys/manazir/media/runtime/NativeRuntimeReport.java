@@ -13,6 +13,14 @@ public record NativeRuntimeReport(List<LibraryResult> libraries) {
         return libraries.stream().allMatch(LibraryResult::loaded);
     }
 
+    public List<NativeLibrary> loadedLibraries() {
+        return libraries.stream().filter(LibraryResult::loaded).map(LibraryResult::library).toList();
+    }
+
+    public boolean hasLibrary(NativeLibrary library) {
+        return libraries.stream().anyMatch(result -> result.library() == library && result.loaded());
+    }
+
     public List<LibraryResult> failures() {
         return libraries.stream().filter(result -> !result.loaded()).toList();
     }
