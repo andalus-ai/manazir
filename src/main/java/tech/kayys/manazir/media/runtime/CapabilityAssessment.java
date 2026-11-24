@@ -11,8 +11,5 @@ public record CapabilityAssessment(
         Objects.requireNonNull(capability, "capability");
         Objects.requireNonNull(status, "status");
         evidence = evidence == null ? "" : evidence;
-        if (status == CapabilityStatus.UNKNOWN && !evidence.isBlank()) {
-            // Evidence may explain why verification has not yet been performed.
-        }
     }
 }
