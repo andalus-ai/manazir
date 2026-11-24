@@ -14,7 +14,7 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 - [ ] Add a reproducible Maven build after confirming JDK and native toolchain requirements.
 - [ ] Pin and document FFmpeg/jextract versions and generation inputs.
 - [ ] Separate generated source output from handwritten source.
-- [ ] Add explicit native runtime bootstrap and capability/version diagnostics.
+- [x] Add explicit native library bootstrap, configurable load order, and structured load diagnostics.\n- [ ] Add FFmpeg version/symbol verification before advertising functional media capabilities.
 - [ ] Add exact rational/time-base value types and conversion tests.
 - [ ] Add CI for compile/tests without requiring native FFmpeg, plus an opt-in native integration profile.
 
