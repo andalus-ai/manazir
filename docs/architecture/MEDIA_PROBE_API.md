@@ -19,7 +19,7 @@ The first Manazir operation contract is read-only container and stream inspectio
 
 An implementation must treat the URI as data, not a shell fragment; honor timeout and byte limits or fail explicitly; avoid mutating source media; preserve native timestamps; and close all backend resources before returning. The public API does not expose native handles or buffers.
 
-The current repository does not yet include an implementation. Native FFM and process-isolated FFmpeg providers are separate follow-up work, selected explicitly through runtime configuration and capability assessment.
+The initial provider is `FfprobeMediaProbe`, an explicit process adapter with backend id `ffprobe-process`. It accepts local `file:` URIs only, invokes FFprobe through a direct argument vector, enforces the request timeout, terminates the child when stdout exceeds `maxProbeBytes`, and retains at most 64 KiB of stderr diagnostics. Container decimal times are represented on a documented microsecond clock; stream PTS/duration ticks retain the exact stream time base. Missing stream time bases or timestamps remain absent and produce diagnostics when ticks cannot be interpreted. This is not the native FFM provider and does not claim hostile-input sandboxing, OS-level resource quotas, or extraction support.
 
 ## Dalang mapping
 
