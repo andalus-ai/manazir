@@ -1,11 +1,11 @@
 # Manazir roadmap
 
-This roadmap is based on the inspected initial repository snapshot. It separates generated ABI bindings from the stable Java media API.
+This roadmap separates generated ABI bindings from the stable Java media API and distinguishes public contracts from working backend implementations.
 
 ## M0 — Foundation audit and architecture
 
 - [x] Inspect current generated avutil source.
-- [x] Record the absence of build configuration, tests, and handwritten media facade in the current tree.
+- [x] Record the absence of build configuration, tests, and handwritten media facade in the initial tree.
 - [x] Define layering, timebase, native ownership, and Dalang integration boundaries.
 - [x] Confirm Java 22 source baseline from generated FFM API usage.
 
@@ -21,7 +21,6 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 - [ ] Add codec/container enumeration, hardware-device discovery, and real execution probes before advertising those capabilities.
 - [x] Add exact rational/time-base value types and conversion tests.
 - [x] Add CI for compile/tests without requiring native FFmpeg (JDK 22 and 25).
-- [ ] Add an opt-in native integration profile after pinning the native build matrix.
 - [x] Add an opt-in native integration test profile; CI coverage remains pending.
 - [ ] Verify clean JDK 22 compilation and unit tests in CI.
 
@@ -29,14 +28,18 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add avformat and avcodec integration behind internal adapters (or a deliberately selected process backend).
-- [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
-- [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
+- [x] Define backend-neutral probe request/result, container, stream, frame-rate, diagnostic and structured failure contracts.
+- [x] Preserve separate container and per-stream clocks, optional timestamps, negative stream starts, and exact frame-rate ratios in the public model.
+- [x] Define bounded probe request inputs (timeout and maximum probe bytes) and backend obligations.
+- [ ] Implement an FFmpeg-backed provider behind the typed API using avformat/avcodec or a deliberately selected process backend.
+- [ ] Connect probe execution to verified runtime capability assessment.
+- [ ] Probe real containers and enumerate codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
+- [ ] Preserve packet/frame timestamp provenance and verify VFR behavior with real media.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
 - [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
-- [ ] Define resource limits, temp-file policy, cancellation, and structured error mapping.
+- [ ] Define temp-file policy, cancellation, concurrency limits, and structured backend error mapping.
 
-**Exit criteria:** Dalang can import an asset, obtain reliable stream metadata, and request timestamp-preserving frame/audio extraction through typed contracts.
+**Exit criteria:** Dalang can import an asset, obtain reliable stream metadata, and request timestamp-preserving frame/audio extraction through typed contracts and a verified provider.
 
 ## M3 — Transcode, filter, and mux primitives
 
@@ -54,4 +57,4 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 ## Guiding sequence
 
-Do not begin with a broad FFmpeg wrapper surface. First establish reproducibility and runtime safety (M1), then complete one vertical slice—probe plus timestamped extraction (M2). Add editing/render primitives only after those contracts are stable.
+Do not begin with a broad FFmpeg wrapper surface. Complete one vertical slice—probe plus timestamped extraction—before adding editing/render primitives. Public contracts are not evidence that a backend operation is implemented or verified.
