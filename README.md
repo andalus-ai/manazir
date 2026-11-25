@@ -10,7 +10,7 @@ The repository contains an initial low-level Java Foreign Function & Memory (FFM
 
 These generated declarations cover part of FFmpeg's `avutil` surface. They are a binding foundation, not a complete media-processing API.
 
-The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, and an FFprobe process provider. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
+The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, an FFprobe process provider, and a timestamped single-frame extraction API backed by an FFmpeg process adapter. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
 
 ## Architectural direction
 
@@ -40,4 +40,4 @@ See [building Manazir](docs/development/BUILDING.md).
 
 ## Architecture
 
-See [architecture overview](docs/architecture/ARCHITECTURE.md), [typed probe API](docs/architecture/MEDIA_PROBE_API.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
+See [architecture overview](docs/architecture/ARCHITECTURE.md), [typed probe API](docs/architecture/MEDIA_PROBE_API.md), [typed frame-extraction API](docs/architecture/FRAME_EXTRACTION_API.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
