@@ -6,6 +6,7 @@ public enum MediaCapability {
     VIDEO_DECODE,
     VIDEO_ENCODE,
     AUDIO_DECODE,
+    AUDIO_EXTRACTION,
     AUDIO_ENCODE,
     AUDIO_RESAMPLE,
     VIDEO_SCALE,
