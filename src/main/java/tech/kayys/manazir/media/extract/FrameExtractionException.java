@@ -28,6 +28,6 @@ public final class FrameExtractionException extends Exception {
     public Optional<String> backendId() { return backendId; }
 
     public enum Code {
-        INVALID_SOURCE, INVALID_DESTINATION, BACKEND_UNAVAILABLE, TIMEOUT, RESOURCE_LIMIT, EXTRACTION_FAILED
+        INVALID_SOURCE, INVALID_DESTINATION, BACKEND_UNAVAILABLE, TIMEOUT, CANCELLED, RESOURCE_LIMIT, EXTRACTION_FAILED
     }
 }
