@@ -32,9 +32,15 @@ The repository includes a Java 22 Maven build, exact-time primitives, backend-ne
 
 ## Media provider selection
 
-`MediaProviderRegistry<T>` is a generic, immutable capability-based registry. Providers explicitly declare supported `MediaCapability` values, availability evidence, priority and diagnostics. Selection is deterministic (priority, then provider ID); an explicitly requested provider is strict unless the caller opts into `ALLOW_FALLBACK`. Unknown availability is never auto-selected. The registry does not load native libraries or discover tools.
+`MediaProviderRegistry<T>` is an explicit immutable registry. Providers declare supported `MediaCapability` values, availability evidence, priority and diagnostics. Selection is deterministic (priority, then provider ID); an explicitly requested provider is strict unless the caller opts into `ALLOW_FALLBACK`. Unknown availability is never auto-selected. The registry does not discover providers or load native libraries.
 
-`ExecutableAvailabilityCheck` can explicitly smoke-test an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation. Native providers must use the explicit native load/version/symbol verification path before advertising capabilities.
+`ExecutableAvailabilityCheck` explicitly smoke-tests an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation. Native providers must use the explicit native load/version/symbol verification path before advertising capabilities.
+
+The registry is now connected to both operation facades:
+- `SelectingMediaProbe` routes `MEDIA_PROBE` requests to a registered `MediaProbe`.
+- `SelectingFrameExtractor` routes `VIDEO_DECODE` requests to a registered `FrameExtractor`.
+
+The application explicitly builds and supplies each registry, including capability evidence and selection policy. No service silently starts a process, loads native libraries, or substitutes a backend.
 
 ## Process adapters
 
