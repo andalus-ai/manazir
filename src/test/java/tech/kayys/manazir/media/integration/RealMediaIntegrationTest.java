@@ -11,14 +11,15 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tech.kayys.manazir.media.extract.FfmpegFrameExtractor;
-import tech.kayys.manazir.media.extract.FrameArtifact;
 import tech.kayys.manazir.media.extract.FrameExtractionRequest;
 import tech.kayys.manazir.media.extract.FrameImageFormat;
+import tech.kayys.manazir.media.extract.FrameSelectionPolicy;
 import tech.kayys.manazir.media.probe.FfprobeMediaProbe;
 import tech.kayys.manazir.media.probe.FrameRate;
 import tech.kayys.manazir.media.probe.MediaProbeException;
@@ -91,15 +92,15 @@ class RealMediaIntegrationTest {
         assertTrue(gaps.stream().distinct().count() > 1, "VFR fixture must have non-uniform frame timestamp gaps");
 
         Path framePath = tempDir.resolve("extracted.png");
-        FrameArtifact artifact = new FfmpegFrameExtractor().extract(new FrameExtractionRequest(
+        var artifact = new FfmpegFrameExtractor().extract(new FrameExtractionRequest(
                 vfr.toUri(), result.streams().getFirst().index(),
-                new MediaTimestamp(367, RationalTimeBase.of(1, 1_000)), framePath,
-                FrameImageFormat.PNG, Duration.ofSeconds(10), 2 * 1024 * 1024));
+                new MediaTimestamp(367, RationalTimeBase.of(1, 1_000)),
+                FrameSelectionPolicy.FIRST_AT_OR_AFTER, framePath, FrameImageFormat.PNG,
+                Optional.empty(), Duration.ofSeconds(10)));
         assertTrue(Files.isRegularFile(framePath));
-        assertEquals(160, artifact.width());
-        assertEquals(90, artifact.height());
-        assertEquals(367, artifact.requestedPosition().ticks());
-        assertEquals(new MediaTimestamp(367, RationalTimeBase.of(1, 1_000)), artifact.actualPosition().orElseThrow());
+        assertEquals(new MediaTimestamp(367, RationalTimeBase.of(1, 1_000)), artifact.actualTimestamp().orElseThrow());
+        assertEquals(Optional.of(new tech.kayys.manazir.media.extract.FrameSize(160, 90)), artifact.outputSize());
+        assertEquals(367, artifact.actualTimestamp().orElseThrow().ticks());
     }
 
     @Test
