@@ -23,8 +23,11 @@ import tech.kayys.manazir.media.time.MediaTimestamp;
 import tech.kayys.manazir.media.time.RationalTimeBase;
 
 /**
- * Isolated FFprobe process provider. Arguments are passed directly (never through a shell),
- * stdout is bounded while the child runs, and no native library is loaded into the JVM.
+ * Isolated FFprobe process provider for local files.
+ *
+ * <p>Arguments are passed directly to ProcessBuilder, never through a shell.
+ * Captured stdout and stderr are bounded while the child runs. This provider
+ * is not an OS-level sandbox and must not be treated as one.</p>
  */
 public final class FfprobeMediaProbe implements MediaProbe {
     public static final String BACKEND_ID = "ffprobe-process";
@@ -34,26 +37,38 @@ public final class FfprobeMediaProbe implements MediaProbe {
     private final String executable;
     private final ObjectMapper mapper;
 
-    public FfprobeMediaProbe() { this("ffprobe", new ObjectMapper()); }
-    public FfprobeMediaProbe(String executable) { this(executable, new ObjectMapper()); }
+    public FfprobeMediaProbe() {
+        this("ffprobe", new ObjectMapper());
+    }
+
+    public FfprobeMediaProbe(String executable) {
+        this(executable, new ObjectMapper());
+    }
 
     FfprobeMediaProbe(String executable, ObjectMapper mapper) {
-        if (executable == null || executable.isBlank()) throw new IllegalArgumentException("executable must not be blank");
+        if (executable == null || executable.isBlank()) {
+            throw new IllegalArgumentException("executable must not be blank");
+        }
         this.executable = executable;
         this.mapper = java.util.Objects.requireNonNull(mapper, "mapper");
     }
 
-    @Override public String backendId() { return BACKEND_ID; }
+    @Override
+    public String backendId() {
+        return BACKEND_ID;
+    }
 
     @Override
     public MediaProbeResult probe(MediaProbeRequest request) throws MediaProbeException {
         java.util.Objects.requireNonNull(request, "request");
         Path source = localSource(request.source());
         if (!Files.isRegularFile(source) || !Files.isReadable(source)) {
-            throw failure(MediaProbeException.Code.INVALID_SOURCE, "Source is not a readable regular file: " + source, null);
+            throw failure(MediaProbeException.Code.INVALID_SOURCE,
+                    "Source is not a readable regular file: " + source, null);
         }
         if (request.maxProbeBytes() > Integer.MAX_VALUE - 8L) {
-            throw failure(MediaProbeException.Code.RESOURCE_LIMIT, "maxProbeBytes exceeds the in-memory JSON parser limit", null);
+            throw failure(MediaProbeException.Code.RESOURCE_LIMIT,
+                    "maxProbeBytes exceeds the in-memory JSON parser limit", null);
         }
 
         final Process process;
@@ -64,44 +79,59 @@ public final class FfprobeMediaProbe implements MediaProbe {
                     "Unable to start FFprobe executable '" + executable + "'", exception);
         }
 
-        CompletableFuture<Capture> stdout = captureAsync(process.getInputStream(), request.maxProbeBytes(), process, true);
-        CompletableFuture<Capture> stderr = captureAsync(process.getErrorStream(), STDERR_LIMIT, process, false);
+        CompletableFuture<Capture> stdout =
+                captureAsync(process.getInputStream(), request.maxProbeBytes(), process, true);
+        CompletableFuture<Capture> stderr =
+                captureAsync(process.getErrorStream(), STDERR_LIMIT, process, false);
+
         try {
             if (!process.waitFor(timeoutMillis(request.timeout()), TimeUnit.MILLISECONDS)) {
                 terminateProcessTree(process);
                 process.waitFor();
-                throw failure(MediaProbeException.Code.TIMEOUT, "FFprobe exceeded timeout of " + request.timeout(), null);
+                throw failure(MediaProbeException.Code.TIMEOUT,
+                        "FFprobe exceeded timeout of " + request.timeout(), null);
             }
+
             Capture output = stdout.get();
             Capture errors = stderr.get();
             if (output.truncated()) {
                 throw failure(MediaProbeException.Code.RESOURCE_LIMIT,
                         "FFprobe JSON exceeded maxProbeBytes=" + request.maxProbeBytes(), null);
             }
+
             String diagnostic = new String(errors.bytes(), StandardCharsets.UTF_8).strip();
             if (process.exitValue() != 0) {
                 throw failure(MediaProbeException.Code.PROBE_FAILED,
-                        diagnostic.isEmpty() ? "FFprobe exited with code " + process.exitValue() : diagnostic, null);
+                        diagnostic.isEmpty()
+                                ? "FFprobe exited with code " + process.exitValue()
+                                : diagnostic,
+                        null);
             }
             return parse(request.source(), output.bytes());
         } catch (InterruptedException exception) {
             terminateProcessTree(process);
             Thread.currentThread().interrupt();
-            throw failure(MediaProbeException.Code.CANCELLED, "FFprobe wait was interrupted", exception);
+            throw failure(MediaProbeException.Code.CANCELLED,
+                    "FFprobe wait was interrupted", exception);
         } catch (ExecutionException exception) {
             terminateProcessTree(process);
-            throw failure(MediaProbeException.Code.PROBE_FAILED, "Unable to collect FFprobe output", exception.getCause());
+            throw failure(MediaProbeException.Code.PROBE_FAILED,
+                    "Unable to collect FFprobe output", exception.getCause());
         } finally {
-            if (process.isAlive()) terminateProcessTree(process);
+            if (process.isAlive()) {
+                terminateProcessTree(process);
+            }
         }
     }
 
     private List<String> command(MediaProbeRequest request, Path source) throws MediaProbeException {
-        List<String> args = new ArrayList<>(List.of(executable, "-v", "error", "-show_format", "-show_streams", "-of", "json"));
+        List<String> args = new ArrayList<>(List.of(
+                executable, "-v", "error", "-show_format", "-show_streams", "-of", "json"));
         if (request.formatHint().isPresent()) {
             String hint = request.formatHint().get();
             if (!hint.matches("[A-Za-z0-9_,.-]+")) {
-                throw failure(MediaProbeException.Code.INVALID_SOURCE, "formatHint contains unsupported characters", null);
+                throw failure(MediaProbeException.Code.INVALID_SOURCE,
+                        "formatHint contains unsupported characters", null);
             }
             args.add("-f");
             args.add(hint);
@@ -113,62 +143,91 @@ public final class FfprobeMediaProbe implements MediaProbe {
 
     private Path localSource(URI uri) throws MediaProbeException {
         if (!"file".equalsIgnoreCase(uri.getScheme())) {
-            throw failure(MediaProbeException.Code.INVALID_SOURCE, "This FFprobe provider currently accepts file: URIs only", null);
+            throw failure(MediaProbeException.Code.INVALID_SOURCE,
+                    "This FFprobe provider currently accepts file: URIs only", null);
         }
         try {
             return Path.of(uri).toAbsolutePath().normalize();
         } catch (RuntimeException exception) {
-            throw failure(MediaProbeException.Code.INVALID_SOURCE, "Invalid local media URI: " + uri, exception);
+            throw failure(MediaProbeException.Code.INVALID_SOURCE,
+                    "Invalid local media URI: " + uri, exception);
         }
     }
 
     private MediaProbeResult parse(URI source, byte[] json) throws MediaProbeException {
         try {
             JsonNode root = mapper.readTree(json);
-            if (root == null || !root.isObject()) throw new IOException("output must be a JSON object");
+            if (root == null || !root.isObject()) {
+                throw new IOException("output must be a JSON object");
+            }
+
             JsonNode format = root.path("format");
             String formatName = text(format, "format_name").orElse("unknown");
             Optional<MediaTimestamp> containerStart = decimalTimestamp(format, "start_time");
             Optional<MediaTimestamp> containerDuration = decimalTimestamp(format, "duration");
             JsonNode streamNodes = root.path("streams");
-            if (!streamNodes.isArray()) throw new IOException("output does not contain a streams array");
+            if (!streamNodes.isArray()) {
+                throw new IOException("output does not contain a streams array");
+            }
+
             List<ProbeDiagnostic> diagnostics = new ArrayList<>();
             List<MediaStreamInfo> streams = new ArrayList<>();
-            for (JsonNode node : streamNodes) streams.add(parseStream(node, diagnostics));
+            for (JsonNode node : streamNodes) {
+                if (!node.isObject()) {
+                    diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING,
+                            "INVALID_STREAM_ENTRY", "A non-object stream entry was ignored"));
+                    continue;
+                }
+                streams.add(parseStream(node, diagnostics));
+            }
+
             MediaContainerInfo container = new MediaContainerInfo(formatName,
                     text(format, "format_long_name"), containerStart, containerDuration);
             return new MediaProbeResult(source, BACKEND_ID, container, streams, diagnostics);
         } catch (IOException | IllegalArgumentException exception) {
-            throw failure(MediaProbeException.Code.PROBE_FAILED, "Unable to parse FFprobe JSON: " + exception.getMessage(), exception);
+            throw failure(MediaProbeException.Code.PROBE_FAILED,
+                    "Unable to parse FFprobe JSON: " + exception.getMessage(), exception);
         }
     }
 
     private MediaStreamInfo parseStream(JsonNode node, List<ProbeDiagnostic> diagnostics) throws IOException {
-        OptionalInt indexValue = integer(node, "index");
-        if (indexValue.isEmpty()) throw new IOException("stream is missing a valid index");
-        int index = indexValue.getAsInt();
+        OptionalInt streamIndex = integer(node, "index");
+        if (streamIndex.isEmpty() || streamIndex.getAsInt() < 0) {
+            throw new IOException("stream is missing a valid non-negative index");
+        }
+        int index = streamIndex.getAsInt();
         Optional<RationalTimeBase> timeBase = rational(node, "time_base");
-        Optional<MediaTimestamp> start = streamTimestamp(longValue(node, "start_pts"), timeBase, index, "start_pts", diagnostics);
-        Optional<MediaTimestamp> duration = streamTimestamp(longValue(node, "duration_ts"), timeBase, index, "duration_ts", diagnostics);
+        Optional<MediaTimestamp> start = streamTimestamp(
+                longValue(node, "start_pts"), timeBase, index, "start_pts", diagnostics);
+        Optional<MediaTimestamp> duration = streamTimestamp(
+                longValue(node, "duration_ts"), timeBase, index, "duration_ts", diagnostics);
+
         OptionalInt width = positiveInt(node, "width");
         OptionalInt height = positiveInt(node, "height");
         if (width.isPresent() != height.isPresent()) {
-            diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING, "INCOMPLETE_VIDEO_DIMENSIONS",
+            diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING,
+                    "INCOMPLETE_VIDEO_DIMENSIONS",
                     "Stream " + index + " has incomplete width/height metadata; both values omitted"));
             width = OptionalInt.empty();
             height = OptionalInt.empty();
         }
-        return new MediaStreamInfo(index, text(node, "id"), streamType(text(node, "codec_type").orElse("")),
-                text(node, "codec_name"), timeBase, start, duration, width, height,
-                positiveInt(node, "sample_rate"), positiveInt(node, "channels"),
+
+        return new MediaStreamInfo(index, text(node, "id"),
+                streamType(text(node, "codec_type").orElse("")),
+                text(node, "codec_name"), timeBase, start, duration,
+                width, height, positiveInt(node, "sample_rate"), positiveInt(node, "channels"),
                 frameRate(node, "avg_frame_rate"), frameRate(node, "r_frame_rate"));
     }
 
-    private Optional<MediaTimestamp> streamTimestamp(Optional<Long> ticks, Optional<RationalTimeBase> timeBase,
-            int index, String field, List<ProbeDiagnostic> diagnostics) {
-        if (ticks.isEmpty()) return Optional.empty();
+    private Optional<MediaTimestamp> streamTimestamp(
+            Optional<Long> ticks, Optional<RationalTimeBase> timeBase, int index,
+            String field, List<ProbeDiagnostic> diagnostics) {
+        if (ticks.isEmpty()) {
+            return Optional.empty();
+        }
         if (timeBase.isEmpty()) {
-            diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING, "MISSING_STREAM_TIME_BASE",
+            diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING,
+                    "MISSING_STREAM_TIME_BASE",
                     "Stream " + index + " has " + field + " but no time_base; timestamp omitted"));
             return Optional.empty();
         }
@@ -177,7 +236,9 @@ public final class FfprobeMediaProbe implements MediaProbe {
 
     private Optional<MediaTimestamp> decimalTimestamp(JsonNode node, String field) throws IOException {
         Optional<String> value = text(node, field);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) {
+            return Optional.empty();
+        }
         try {
             long ticks = new BigDecimal(value.get()).multiply(BigDecimal.valueOf(1_000_000))
                     .setScale(0, RoundingMode.HALF_UP).longValueExact();
@@ -189,33 +250,55 @@ public final class FfprobeMediaProbe implements MediaProbe {
 
     private static Optional<RationalTimeBase> rational(JsonNode node, String field) {
         Optional<String> value = text(node, field);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) {
+            return Optional.empty();
+        }
         String[] parts = value.get().split("/", -1);
-        if (parts.length != 2) return Optional.empty();
-        try { return Optional.of(RationalTimeBase.of(Long.parseLong(parts[0]), Long.parseLong(parts[1]))); }
-        catch (IllegalArgumentException exception) { return Optional.empty(); }
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(RationalTimeBase.of(
+                    Long.parseLong(parts[0]), Long.parseLong(parts[1])));
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
     }
 
     private static Optional<FrameRate> frameRate(JsonNode node, String field) {
         Optional<String> value = text(node, field);
-        if (value.isEmpty()) return Optional.empty();
+        if (value.isEmpty()) {
+            return Optional.empty();
+        }
         String[] parts = value.get().split("/", -1);
-        if (parts.length != 2) return Optional.empty();
-        try { return Optional.of(new FrameRate(Long.parseLong(parts[0]), Long.parseLong(parts[1]))); }
-        catch (IllegalArgumentException exception) { return Optional.empty(); }
+        if (parts.length != 2) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(new FrameRate(
+                    Long.parseLong(parts[0]), Long.parseLong(parts[1])));
+        } catch (IllegalArgumentException exception) {
+            return Optional.empty();
+        }
     }
 
     private static Optional<String> text(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        if (value.isMissingNode() || value.isNull()) return Optional.empty();
+        if (value.isMissingNode() || value.isNull()) {
+            return Optional.empty();
+        }
         String result = value.asText();
-        return result.isBlank() || "N/A".equalsIgnoreCase(result) ? Optional.empty() : Optional.of(result);
+        return result.isBlank() || "N/A".equalsIgnoreCase(result)
+                ? Optional.empty() : Optional.of(result);
     }
 
     private static Optional<Long> longValue(JsonNode node, String field) {
         return text(node, field).flatMap(value -> {
-            try { return Optional.of(Long.parseLong(value)); }
-            catch (NumberFormatException exception) { return Optional.empty(); }
+            try {
+                return Optional.of(Long.parseLong(value));
+            } catch (NumberFormatException exception) {
+                return Optional.empty();
+            }
         });
     }
 
@@ -297,5 +380,6 @@ public final class FfprobeMediaProbe implements MediaProbe {
                 : new MediaProbeException(code, Optional.of(BACKEND_ID), message, cause);
     }
 
-    private record Capture(byte[] bytes, boolean truncated) {}
+    private record Capture(byte[] bytes, boolean truncated) {
+    }
 }

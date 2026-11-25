@@ -24,7 +24,10 @@ The checked-in avutil snapshot was generated against a macOS SDK and is excluded
 12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
 13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
 
-## Current process probe limitations\n`FfprobeMediaProbe` is a metadata-only process provider for local file URIs. It uses argv, enforces a timeout and bounds captured stdout while running, but does not provide OS-level CPU/memory/filesystem sandboxing. Do not treat it as a hostile-input sandbox. Native FFM probing, extraction, cancellation tokens and real CFR/VFR fixtures remain open.\n\n## Implementation workflow
+## Current process adapter limitations
+`FfprobeMediaProbe` provides local-file metadata probing; `FfmpegFrameExtractor` provides one local-file video frame as PNG/JPEG. Both use argv, enforce wall-clock timeouts and have bounded output handling, but neither provides OS-level CPU/memory/filesystem sandboxing. Frame seek positions are serialized to 12 decimal places for the FFmpeg CLI; do not claim exact decoded-frame PTS without a timestamp-aware verification path. Audio extraction, frame sequences, cancellation tokens, real CFR/VFR fixtures and native FFM decoding remain open.
+
+## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
 
 ## Definition of done

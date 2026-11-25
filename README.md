@@ -1,6 +1,6 @@
 # Manazir
 
-Manazir is the Java-native media foundation for the Andalus ecosystem. It provides safe, reusable media operations and FFmpeg integration so higher-level products such as Dalang do not depend on raw FFmpeg ABI details.
+Manazir is the Java-native media foundation for the Andalus ecosystem. It provides reusable media operations and FFmpeg integration so higher-level products such as Dalang do not depend on raw FFmpeg ABI details.
 
 ## Current repository state
 
@@ -10,29 +10,42 @@ The repository contains an initial low-level Java Foreign Function & Memory (FFM
 
 These generated declarations cover part of FFmpeg's `avutil` surface. They are a binding foundation, not a complete media-processing API.
 
-The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, and an optional FFprobe process provider. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
+The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, an FFprobe process provider, and a timestamped single-frame extraction API backed by an FFmpeg process adapter. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
 
 ## Architectural direction
 
 1. **Generated bindings** — low-level, version/platform-sensitive FFM declarations. Treat generated output as an implementation detail.
 2. **Native runtime** — library discovery, ABI/platform checks, capability reporting, and native resource lifecycle.
 3. **Typed media API** — stable Java contracts for probing, streams, timestamps, extraction, transcoding, progress, cancellation, and diagnostics.
-4. **Execution adapters** — the initial isolated FFprobe process provider is implemented; a native FFmpeg FFM provider remains gated on reproducible bindings and ABI verification.
+4. **Execution adapters** — isolated FFprobe/FFmpeg process adapters are implemented for metadata probing and single-frame extraction; a native FFmpeg FFM provider remains gated on reproducible bindings and ABI verification.
 5. **Product integrations** — Dalang and other consumers depend on typed Manazir contracts, never generated binding classes.
 
 ## Design invariants
 
-- Preserve stream timestamps as integer ticks plus exact rational time bases; keep container clocks separate and preserve missing stream time bases as absent.\n- Represent frame rates as exact frames-per-second ratios, not time bases.
+- Preserve stream timestamps as integer ticks plus exact rational time bases; keep container clocks separate and preserve missing stream time bases as absent.
+- Represent frame rates as exact frames-per-second ratios, not time bases.
 - Make native memory ownership and lifetime explicit. Never return a `MemorySegment` whose owning arena has already closed.
 - Avoid loading native libraries as an accidental side effect of referencing API types.
 - Report native capabilities and library versions explicitly; fail with actionable diagnostics when a required library is missing or incompatible.
 - Keep FFmpeg operations cancellable, bounded, observable, and safe to run concurrently.
 - Do not let Dalang-specific concepts (projects, timelines, edit proposals, clipper workflows) leak into Manazir.
 
-## Media probe provider\n\n`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs. It does not yet extract frames/audio, support remote URLs, or provide an OS-level sandbox; do not expose it to hostile multi-tenant workloads without additional isolation.\n\n## Build
+## Media provider selection
+
+`MediaProviderRegistry<T>` is a generic, immutable capability-based registry. Providers explicitly declare supported `MediaCapability` values, availability evidence, priority and diagnostics. Selection is deterministic (priority, then provider ID); an explicitly requested provider is strict unless the caller opts into `ALLOW_FALLBACK`. Unknown availability is never auto-selected. The registry does not load native libraries or discover tools.
+
+`ExecutableAvailabilityCheck` can explicitly smoke-test an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation. Native providers must use the explicit native load/version/symbol verification path before advertising capabilities.
+
+## Process adapters
+
+`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs.
+
+`FfmpegFrameExtractor` extracts one timestamped video frame to a caller-selected PNG/JPEG artifact. It validates the output and refuses to overwrite an existing destination. Both adapters are process integrations, not OS-level sandboxes; do not expose them to hostile multi-tenant workloads without additional isolation.
+
+## Build
 
 See [building Manazir](docs/development/BUILDING.md).
 
 ## Architecture
 
-See [architecture overview](docs/architecture/ARCHITECTURE.md), [typed probe API](docs/architecture/MEDIA_PROBE_API.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
+See [architecture overview](docs/architecture/ARCHITECTURE.md), [typed probe API](docs/architecture/MEDIA_PROBE_API.md), [typed frame-extraction API](docs/architecture/FRAME_EXTRACTION_API.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).

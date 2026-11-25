@@ -7,7 +7,7 @@ Manazir provides reusable Java-native media execution for Andalus products. It h
 1. Generated jextract FFM bindings: low-level ABI declarations, isolated and reproducibly generated.
 2. Native runtime: explicit library loading, platform/version/symbol checks, diagnostics and lifecycle.
 3. Public media API: typed timestamps, probe requests/reports, container and stream metadata, extraction/transcode requests, progress, cancellation and errors.
-4. Backend SPI: native FFM backend and optional process-isolated FFmpeg backend.
+4. Backend SPI and provider registry: native FFM backend and optional process-isolated FFmpeg/FFprobe backends.
 5. Product adapters: Dalang and other consumers depend only on stable public contracts.
 
 ## Runtime lifecycle
@@ -23,17 +23,26 @@ Constructing API values/services does not load native libraries. Explicit initia
 - Typed options and structured diagnostics; no arbitrary shell strings.
 - Every long operation supports bounded resources, progress, cancellation and cleanup.
 
-## Current typed probe contract
-The initial public contract lives under `tech.kayys.manazir.media.probe`: `MediaProbe`, `MediaProbeRequest`, `MediaProbeResult`, `MediaContainerInfo`, `MediaStreamInfo`, `FrameRate`, `ProbeDiagnostic`, and `MediaProbeException`. It defines API semantics only; no FFmpeg provider is implemented yet. See [MEDIA_PROBE_API.md](MEDIA_PROBE_API.md).
+## Typed media contracts
+The public probe port lives under `tech.kayys.manazir.media.probe`; the initial process implementation is `FfprobeMediaProbe` and supports local-file metadata probing. The frame-extraction port lives under `tech.kayys.manazir.media.extract`; `FfmpegFrameExtractor` implements single-frame extraction to a caller-selected image artifact. These are process adapters, not native FFM implementations and not OS-level sandboxes.
+
+## Capability-based provider selection
+`MediaProviderRegistry<T>` is an explicit, immutable registry of provider instances and descriptors. A descriptor declares provider ID, supported `MediaCapability` values, availability evidence, priority and diagnostic. The registry itself never discovers providers, loads native libraries or executes tools.
+
+- `ExecutableAvailabilityCheck` explicitly runs an executable's `-version` command with a timeout. It establishes only that the process can run; it does not prove codec, container, decode, encode or filter support.
+- Native availability must come from the existing explicit native load/version/symbol verification path. Merely finding a shared library is not sufficient.
+- Unknown availability is not eligible for automatic selection.
+- Selection is deterministic: higher priority first, then provider ID.
+- An explicitly requested provider is strict by default. Fallback requires `ALLOW_FALLBACK` and is returned in selection diagnostics; there is no hidden fallback.
+- Register only capabilities actually implemented by that provider. FFprobe metadata probing is `MEDIA_PROBE`; the single-frame FFmpeg process adapter requires decode capability and must not be advertised as transcode/filter/mux support.
+
+The selector is generic so probe, extraction and later execution ports can use the same policy without coupling the registry to product-specific APIs. See the provider selection tests for empty registry, unknown/unavailable providers, unsupported operations, deterministic ordering and explicit fallback.
 
 ## Backend strategy
-Native FFM backend offers in-process efficiency but requires strict ABI/platform validation and memory safety. Process backend offers isolation and broader deployment flexibility but incurs process/serialization overhead. Both implement the same typed contracts. Select backend by explicit configuration/capability, not hidden fallback that changes semantics.
+Native FFM backend offers in-process efficiency but requires strict ABI/platform validation and memory safety. Process backend offers process boundaries and broader deployment flexibility but incurs process/serialization overhead; it is not a security sandbox by itself. Both implement the same typed contracts. Select backend by explicit configuration/capability, not hidden fallback that changes semantics.
 
 ## Dalang integration
 Dalang uses Manazir public media API for probe, timestamped extraction, transforms and render execution. Manazir knows nothing about Dalang projects or timelines. Integration contract lives in Dalang docs.
 
 ## Non-goals
 No agent planning, LLM prompt management, video project model, timeline editor, UI, or social publishing workflow.
- 
-## Initial process provider
-The first working probe provider is an isolated FFprobe subprocess implementing the backend-neutral media probe port. It accepts local files, passes arguments without a shell, enforces a timeout and a bounded captured-stdout budget, and maps failures to typed errors. It is metadata-only and does not claim native FFM integration or hostile-input sandboxing. The native provider remains gated on reproducible FFmpeg-specific bindings and ABI validation.
