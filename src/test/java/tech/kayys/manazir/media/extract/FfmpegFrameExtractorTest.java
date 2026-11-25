@@ -33,6 +33,7 @@ class FfmpegFrameExtractorTest {
         assertEquals(36, artifact.height());
         assertTrue(artifact.sizeBytes() > 0);
         assertEquals(new MediaTimestamp(90_000, RationalTimeBase.of(1, 90_000)), artifact.requestedPosition());
+        assertTrue(artifact.actualPosition().isEmpty(), "fake FFmpeg does not emit showinfo metadata");
         assertTrue(Files.isRegularFile(destination));
     }
 
