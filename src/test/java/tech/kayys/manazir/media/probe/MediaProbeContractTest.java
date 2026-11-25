@@ -31,8 +31,7 @@ class MediaProbeContractTest {
         var stream = videoStream(0, Optional.of(streamStart), Optional.empty());
         var container = new MediaContainerInfo("mov,mp4", Optional.of("QuickTime / MOV"),
                 Optional.empty(), Optional.empty());
-        var result = new MediaProbeResult(URI.create("file:///vfr.mp4"), "fixture",
-                container, List.of(stream), List.of());
+        var result = new MediaProbeResult(URI.create("file:///vfr.mp4"), "fixture", container, List.of(stream), List.of());
 
         assertTrue(result.container().startTime().isEmpty());
         assertEquals(streamStart, result.streams().getFirst().startTime().orElseThrow());
@@ -46,7 +45,6 @@ class MediaProbeContractTest {
                 URI.create("file:///a.mp4"), "fixture",
                 new MediaContainerInfo("mp4", Optional.empty(), Optional.empty(), Optional.empty()),
                 List.of(stream, stream), List.of()));
-
         var wrongClock = new MediaTimestamp(10, RationalTimeBase.of(1, 1_000));
         assertThrows(IllegalArgumentException.class, () -> videoStream(1, Optional.of(wrongClock), Optional.empty()));
     }
@@ -60,17 +58,25 @@ class MediaProbeContractTest {
     }
 
     @Test
+    void allowsMissingStreamTimeBaseWithoutInventingOne() {
+        var stream = new MediaStreamInfo(0, Optional.empty(), MediaStreamType.DATA, Optional.empty(),
+                Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty(), OptionalInt.empty(),
+                OptionalInt.empty(), OptionalInt.empty(), Optional.empty(), Optional.empty());
+        assertTrue(stream.timeBase().isEmpty());
+    }
+
+    @Test
     void exposesStructuredProbeFailures() {
         var error = new MediaProbeException(MediaProbeException.Code.TIMEOUT,
-                Optional.of("ffmpeg-ffm"), "probe timed out");
+                Optional.of("ffprobe-process"), "probe timed out");
         assertEquals(MediaProbeException.Code.TIMEOUT, error.code());
-        assertEquals("ffmpeg-ffm", error.backendId().orElseThrow());
+        assertEquals("ffprobe-process", error.backendId().orElseThrow());
     }
 
     private static MediaStreamInfo videoStream(int index, Optional<MediaTimestamp> start,
                                                 Optional<MediaTimestamp> duration) {
         return new MediaStreamInfo(index, Optional.of(Integer.toString(index)), MediaStreamType.VIDEO,
-                Optional.of("h264"), STREAM_TIME_BASE, start, duration,
+                Optional.of("h264"), Optional.of(STREAM_TIME_BASE), start, duration,
                 OptionalInt.of(1920), OptionalInt.of(1080), OptionalInt.empty(), OptionalInt.empty(),
                 Optional.of(new FrameRate(30_000, 1_001)), Optional.empty());
     }
