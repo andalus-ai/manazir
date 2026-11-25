@@ -7,7 +7,7 @@ Manazir is the reusable Java-native media execution layer for the Andalus ecosys
 README.md; docs/architecture/FFM_FOUNDATION.md; docs/architecture/ARCHITECTURE.md; docs/architecture/DIAGRAMS.md; docs/development/BUILDING.md; docs/roadmap/ROADMAP.md.
 
 ## Source baseline
-The checked-in avutil snapshot was generated against a macOS SDK and is excluded from the portable Maven compile; it is not a supported FFmpeg ABI. The FFmpeg runtime inspector uses a narrow FFM loader-symbol adapter, not the generated declarations. The initial `FfprobeMediaProbe` process provider is an explicit implementation of the typed probe port for local files only. It bounds captured stdout and applies a timeout, but is not an OS sandbox. Before editing or regenerating generated code, establish FFmpeg headers/version, jextract version, generation command, target platform and reproducibility.
+The checked-in avutil snapshot was generated against a macOS SDK and is excluded from the portable Maven compile; it is not a supported FFmpeg ABI. The FFmpeg runtime inspector uses a narrow FFM loader-symbol adapter rather than treating generated declarations as complete FFmpeg bindings. Before regenerating generated code, establish pinned FFmpeg headers/version, jextract version, exact generation command, target platform and reproducibility.
 
 ## Architecture rules
 1. Layer generated bindings -> explicit native runtime -> typed public media API -> backend SPI/adapters -> product integrations.
@@ -24,10 +24,7 @@ The checked-in avutil snapshot was generated against a macOS SDK and is excluded
 12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
 13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
 
-## Current process probe limitations
-`FfprobeMediaProbe` is metadata-only, accepts local `file:` URIs, and has no OS-level CPU/memory/filesystem sandbox. Do not treat its timeout and stdout cap as protection against hostile media in multi-tenant deployments. Native FFM probing, extraction, cancellation tokens and real CFR/VFR fixtures remain open.
-
-## Implementation workflow
+## Current process probe limitations\n`FfprobeMediaProbe` is a metadata-only process provider for local file URIs. It uses argv, enforces a timeout and bounds captured stdout while running, but does not provide OS-level CPU/memory/filesystem sandboxing. Do not treat it as a hostile-input sandbox. Native FFM probing, extraction, cancellation tokens and real CFR/VFR fixtures remain open.\n\n## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
 
 ## Definition of done

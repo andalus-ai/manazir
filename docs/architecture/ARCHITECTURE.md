@@ -34,3 +34,6 @@ Dalang uses Manazir public media API for probe, timestamped extraction, transfor
 
 ## Non-goals
 No agent planning, LLM prompt management, video project model, timeline editor, UI, or social publishing workflow.
+ 
+## Initial process provider
+The first working probe provider is an isolated FFprobe subprocess implementing the backend-neutral media probe port. It accepts local files, passes arguments without a shell, enforces a timeout and a bounded captured-stdout budget, and maps failures to typed errors. It is metadata-only and does not claim native FFM integration or hostile-input sandboxing. The native provider remains gated on reproducible FFmpeg-specific bindings and ABI validation.

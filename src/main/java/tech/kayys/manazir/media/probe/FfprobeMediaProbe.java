@@ -150,9 +150,17 @@ public final class FfprobeMediaProbe implements MediaProbe {
         Optional<RationalTimeBase> timeBase = rational(node, "time_base");
         Optional<MediaTimestamp> start = streamTimestamp(longValue(node, "start_pts"), timeBase, index, "start_pts", diagnostics);
         Optional<MediaTimestamp> duration = streamTimestamp(longValue(node, "duration_ts"), timeBase, index, "duration_ts", diagnostics);
+        OptionalInt width = positiveInt(node, "width");
+        OptionalInt height = positiveInt(node, "height");
+        if (width.isPresent() != height.isPresent()) {
+            diagnostics.add(new ProbeDiagnostic(ProbeDiagnostic.Severity.WARNING, "INCOMPLETE_VIDEO_DIMENSIONS",
+                    "Stream " + index + " has incomplete width/height metadata; both values omitted"));
+            width = OptionalInt.empty();
+            height = OptionalInt.empty();
+        }
         return new MediaStreamInfo(index, text(node, "id"), streamType(text(node, "codec_type").orElse("")),
-                text(node, "codec_name"), timeBase, start, duration, positiveInt(node, "width"),
-                positiveInt(node, "height"), positiveInt(node, "sample_rate"), positiveInt(node, "channels"),
+                text(node, "codec_name"), timeBase, start, duration, width, height,
+                positiveInt(node, "sample_rate"), positiveInt(node, "channels"),
                 frameRate(node, "avg_frame_rate"), frameRate(node, "r_frame_rate"));
     }
 

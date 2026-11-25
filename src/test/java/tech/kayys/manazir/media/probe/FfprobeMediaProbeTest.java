@@ -55,6 +55,21 @@ class FfprobeMediaProbeTest {
     }
 
     @Test
+    void incompleteDimensionsRemainAbsentWithDiagnostic() throws Exception {
+        Path source = Files.createFile(tempDir.resolve("incomplete-dimensions.mp4"));
+        Path executable = fakeExecutable("""
+                printf '%s' '{"format":{"format_name":"mp4"},"streams":[{"index":0,"codec_type":"video","width":640}]}'
+                """);
+        var request = new MediaProbeRequest(source.toUri(), Optional.empty(), Duration.ofSeconds(3), 64 * 1024);
+
+        MediaProbeResult result = new FfprobeMediaProbe(executable.toString()).probe(request);
+
+        assertTrue(result.streams().getFirst().width().isEmpty());
+        assertTrue(result.streams().getFirst().height().isEmpty());
+        assertEquals("INCOMPLETE_VIDEO_DIMENSIONS", result.diagnostics().getFirst().code());
+    }
+
+    @Test
     void rejectsOutputLargerThanRequestBudgetWhileProcessIsRunning() throws Exception {
         Path source = Files.createFile(tempDir.resolve("large.mp4"));
         Path executable = fakeExecutable("head -c 200000 /dev/zero\n");
