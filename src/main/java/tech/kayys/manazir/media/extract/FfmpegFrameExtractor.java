@@ -170,7 +170,7 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
         try {
             RationalTimeBase base = RationalTimeBase.of(Long.parseLong(timeBase.group(1)), Long.parseLong(timeBase.group(2)));
             return Optional.of(new MediaTimestamp(Long.parseLong(pts.group(1)), base));
-        } catch (IllegalArgumentException | NumberFormatException exception) {
+        } catch (IllegalArgumentException exception) {
             return Optional.empty();
         }
     }
