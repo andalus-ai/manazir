@@ -4,8 +4,8 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 ## M0 — Foundation audit and architecture
 
-- [x] Inspect current generated `avutil` source.
-- [x] Record the absence of build configuration, tests, and handwritten media facade in the original snapshot.
+- [x] Inspect current generated avutil source.
+- [x] Record the absence of build configuration, tests, and handwritten media facade in the current tree.
 - [x] Define layering, timebase, native ownership, and Dalang integration boundaries.
 - [x] Confirm Java 22 source baseline from generated FFM API usage.
 
@@ -13,20 +13,23 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 - [x] Add an initial Maven build targeting Java 22.
 - [ ] Pin and document FFmpeg/jextract versions and generation inputs.
-- [ ] Separate generated source output from handwritten source.
+- [ ] Regenerate and separate FFmpeg-specific bindings from the current avutil-only generated snapshot.
 - [x] Add explicit native library bootstrap, configurable load order, and structured load diagnostics.
 - [x] Add typed version/inspection contracts and a conservative capability registry.
-- [ ] Implement a concrete FFmpeg/Jextract inspector for version functions and required-symbol verification.
+- [x] Add an FFM-backed inspector for FFmpeg component version functions and selected stable API symbol groups.
 - [ ] Define and test the supported FFmpeg ABI/version matrix.
+- [ ] Add codec/container enumeration, hardware-device discovery, and real execution probes before advertising those capabilities.
 - [x] Add exact rational/time-base value types and conversion tests.
 - [x] Add CI for compile/tests without requiring native FFmpeg (JDK 22 and 25).
 - [ ] Add an opt-in native integration profile after pinning the native build matrix.
+- [x] Add an opt-in native integration test profile; CI coverage remains pending.
+- [ ] Verify clean JDK 22 compilation and unit tests in CI.
 
-**Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified capabilities; exact timestamp semantics are tested.
+**Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified component API surfaces; exact timestamp semantics are tested.
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add `avformat` and `avcodec` integration behind internal adapters (or a deliberately selected process backend).
+- [ ] Add avformat and avcodec integration behind internal adapters (or a deliberately selected process backend).
 - [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
 - [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.

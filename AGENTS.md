@@ -7,7 +7,7 @@ Manazir is the reusable Java-native media execution layer for the Andalus ecosys
 README.md; docs/architecture/FFM_FOUNDATION.md; docs/architecture/ARCHITECTURE.md; docs/architecture/DIAGRAMS.md; docs/development/BUILDING.md; docs/roadmap/ROADMAP.md.
 
 ## Source baseline
-The repository includes generated jextract Java FFM bindings under avutil and handwritten API/runtime work. Generated declarations are low-level ABI-specific implementation, not a stable consumer API. Before editing generated code, establish FFmpeg headers/version, jextract version, generation command, target platform and reproducibility. Verify current Maven/JDK assumptions; do not infer supported native deployment matrix from source compiling.
+The repository currently contains generated Java FFM source only under tech.kayys.manazir.avutil; that snapshot does not expose FFmpeg component version functions. The FFmpeg runtime inspector therefore uses a narrow FFM loader-symbol adapter rather than treating those generated declarations as complete FFmpeg bindings. Generated declarations are low-level ABI-specific implementation, not a stable consumer API. Before editing or regenerating generated code, establish FFmpeg headers/version, jextract version, generation command, target platform and reproducibility. Verify current Maven/JDK assumptions; do not infer supported native deployment matrix from source compiling.
 
 ## Architecture rules
 1. Layer generated bindings -> explicit native runtime -> typed public media API -> backend SPI/adapters -> product integrations.
@@ -21,6 +21,8 @@ The repository includes generated jextract Java FFM bindings under avutil and ha
 9. Backend-specific details stay behind interfaces; native FFM and isolated process backend may coexist.
 10. No Dalang, Andalus-agent or AQLI product-domain dependencies in core media API.
 11. OS library-load success is not ABI/symbol verification; do not advertise capabilities before checks pass.
+12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
+13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
 
 ## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
