@@ -4,12 +4,31 @@
 ```mermaid
 flowchart TB
  P[Dalang / Other Products] --> API[Typed Manazir Public API]
- API --> SPI[Backend SPI]
+ API --> REG[Capability Provider Registry]
+ REG --> SPI[Backend SPI]
  SPI --> FFM[Native FFM backend]
  SPI --> PROC[Optional process backend]
  FFM --> GEN[Generated jextract bindings]
  FFM --> LIB[(FFmpeg shared libraries)]
- PROC --> BIN[FFmpeg executable]
+ PROC --> BIN[FFmpeg / FFprobe executables]
+```
+
+## Capability-based provider selection
+```mermaid
+flowchart TD
+ R[Explicit provider registrations] --> D[Provider descriptors]
+ D --> C{Supports requested capability?}
+ C -->|No| X[Reject with diagnostic]
+ C -->|Yes| A{Availability}
+ A -->|AVAILABLE| S[Eligible candidate]
+ A -->|UNKNOWN| U[Do not auto-select]
+ A -->|UNAVAILABLE| N[Reject candidate]
+ S --> P[Sort by priority, then provider ID]
+ P --> Q{Preferred provider selected?}
+ Q -->|Yes| O[Return selected provider]
+ Q -->|No| F{Fallback explicitly allowed?}
+ F -->|No| E[Fail strict selection]
+ F -->|Yes| O
 ```
 
 ## Native runtime lifecycle
@@ -31,21 +50,22 @@ stateDiagram-v2
 sequenceDiagram
  participant Client
  participant API as Typed Media API
- participant Runtime as Runtime/Capabilities
+ participant Registry as Provider Registry
  participant Backend
  participant FFmpeg
  Client->>API: probe(source, options)
- API->>Runtime: require(PROBE)
- Runtime-->>API: verified capability
+ API->>Registry: select(MEDIA_PROBE, policy)
+ Registry-->>API: selected provider + diagnostics
  API->>Backend: typed probe request
- Backend->>FFmpeg: open input / inspect streams
+ Backend->>FFmpeg: inspect local source
  FFmpeg-->>Backend: container and stream metadata
  Backend-->>API: structured probe report
  API-->>Client: report with stream timebases
- Client->>API: extract(range, options)
- API->>Runtime: require(DECODE/EXTRACT)
- API->>Backend: timestamp-preserving extraction
- Backend-->>API: artifacts + source PTS/timebases
+ Client->>API: extract(frame request)
+ API->>Registry: select(VIDEO_DECODE, policy)
+ Registry-->>API: selected provider + diagnostics
+ API->>Backend: typed extraction request
+ Backend-->>API: frame artifact + requested timestamp
  API-->>Client: extraction result
 ```
 

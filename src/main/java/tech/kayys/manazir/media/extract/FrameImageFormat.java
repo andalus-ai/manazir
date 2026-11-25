@@ -1,21 +1,19 @@
 package tech.kayys.manazir.media.extract;
 
-/** Supported still-image containers for single-frame extraction. */
+/** Backend-neutral still-image formats supported by the extraction contract. */
 public enum FrameImageFormat {
-    PNG("png", "image/png", "png"),
-    JPEG("jpg", "image/jpeg", "mjpeg");
+    PNG("png", "image/png"),
+    JPEG("jpg", "image/jpeg"),
+    WEBP("webp", "image/webp");
 
     private final String extension;
-    private final String contentType;
-    private final String ffmpegCodec;
+    private final String mediaType;
 
-    FrameImageFormat(String extension, String contentType, String ffmpegCodec) {
+    FrameImageFormat(String extension, String mediaType) {
         this.extension = extension;
-        this.contentType = contentType;
-        this.ffmpegCodec = ffmpegCodec;
+        this.mediaType = mediaType;
     }
 
     public String extension() { return extension; }
-    public String contentType() { return contentType; }
-    String ffmpegCodec() { return ffmpegCodec; }
+    public String mediaType() { return mediaType; }
 }

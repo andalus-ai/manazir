@@ -17,7 +17,7 @@ The repository includes a Java 22 Maven build, exact-time primitives, backend-ne
 1. **Generated bindings** — low-level, version/platform-sensitive FFM declarations. Treat generated output as an implementation detail.
 2. **Native runtime** — library discovery, ABI/platform checks, capability reporting, and native resource lifecycle.
 3. **Typed media API** — stable Java contracts for probing, streams, timestamps, extraction, transcoding, progress, cancellation, and diagnostics.
-4. **Execution adapters** — the initial isolated FFprobe process provider is implemented; a native FFmpeg FFM provider remains gated on reproducible bindings and ABI verification.
+4. **Execution adapters** — isolated FFprobe/FFmpeg process adapters are implemented for metadata probing and single-frame extraction; a native FFmpeg FFM provider remains gated on reproducible bindings and ABI verification.
 5. **Product integrations** — Dalang and other consumers depend on typed Manazir contracts, never generated binding classes.
 
 ## Design invariants
@@ -30,9 +30,17 @@ The repository includes a Java 22 Maven build, exact-time primitives, backend-ne
 - Keep FFmpeg operations cancellable, bounded, observable, and safe to run concurrently.
 - Do not let Dalang-specific concepts (projects, timelines, edit proposals, clipper workflows) leak into Manazir.
 
-## Media probe provider
+## Media provider selection
 
-`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs. It does not yet extract frames/audio, support remote URLs, or provide an OS-level sandbox; do not expose it to hostile multi-tenant workloads without additional isolation.
+`MediaProviderRegistry<T>` is a generic, immutable capability-based registry. Providers explicitly declare supported `MediaCapability` values, availability evidence, priority and diagnostics. Selection is deterministic (priority, then provider ID); an explicitly requested provider is strict unless the caller opts into `ALLOW_FALLBACK`. Unknown availability is never auto-selected. The registry does not load native libraries or discover tools.
+
+`ExecutableAvailabilityCheck` can explicitly smoke-test an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation. Native providers must use the explicit native load/version/symbol verification path before advertising capabilities.
+
+## Process adapters
+
+`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs.
+
+`FfmpegFrameExtractor` extracts one timestamped video frame to a caller-selected PNG/JPEG artifact. It validates the output and refuses to overwrite an existing destination. Both adapters are process integrations, not OS-level sandboxes; do not expose them to hostile multi-tenant workloads without additional isolation.
 
 ## Build
 
