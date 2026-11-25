@@ -6,35 +6,27 @@ import tech.kayys.manazir.media.runtime.MediaCapability;
 import tech.kayys.manazir.media.runtime.MediaProviderRegistry;
 import tech.kayys.manazir.media.runtime.ProviderSelectionException;
 import tech.kayys.manazir.media.runtime.ProviderSelectionPolicy;
+import tech.kayys.manazir.media.runtime.SelectedMediaProvider;
 
-/**
- * Routes frame extraction through an explicitly configured capability registry.
- * The provider descriptor must advertise VIDEO_DECODE only when that capability
- * has been established by the application's provider verification process.
- */
+/** Routes frame extraction through an explicitly configured capability registry. */
 public final class SelectingFrameExtractor implements FrameExtractor {
     private final MediaProviderRegistry<FrameExtractor> providers;
     private final Optional<String> preferredProviderId;
     private final ProviderSelectionPolicy policy;
 
-    public SelectingFrameExtractor(
-            MediaProviderRegistry<FrameExtractor> providers,
-            Optional<String> preferredProviderId,
-            ProviderSelectionPolicy policy) {
+    public SelectingFrameExtractor(MediaProviderRegistry<FrameExtractor> providers,
+            Optional<String> preferredProviderId, ProviderSelectionPolicy policy) {
         this.providers = Objects.requireNonNull(providers, "providers");
         this.preferredProviderId = Objects.requireNonNull(preferredProviderId, "preferredProviderId");
         this.policy = Objects.requireNonNull(policy, "policy");
     }
 
-    @Override
-    public String backendId() {
-        return preferredProviderId.orElse("capability-selected");
-    }
+    @Override public String backendId() { return preferredProviderId.orElse("capability-selected"); }
 
     @Override
     public FrameExtractionResult extract(FrameExtractionRequest request) throws FrameExtractionException {
         Objects.requireNonNull(request, "request");
-        final var selected;
+        final SelectedMediaProvider<FrameExtractor> selected;
         try {
             selected = providers.select(MediaCapability.VIDEO_DECODE, preferredProviderId, policy);
         } catch (ProviderSelectionException exception) {
