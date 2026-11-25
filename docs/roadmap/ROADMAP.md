@@ -5,13 +5,13 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 ## M0 — Foundation audit and architecture
 
 - [x] Inspect current generated `avutil` source.
-- [x] Record the absence of build configuration, tests, and handwritten media facade in the current tree.
+- [x] Record the absence of build configuration, tests, and handwritten media facade in the original snapshot.
 - [x] Define layering, timebase, native ownership, and Dalang integration boundaries.
-- [ ] Confirm JDK baseline, FFmpeg headers/version, jextract version, and supported platform matrix.
+- [x] Confirm Java 22 source baseline from generated FFM API usage.
 
 ## M1 — Reproducible build and runtime foundation
 
-- [x] Add an initial Maven build targeting Java 22 (baseline is provisional pending a clean JDK 22 build).
+- [x] Add an initial Maven build targeting Java 22.
 - [ ] Pin and document FFmpeg/jextract versions and generation inputs.
 - [ ] Separate generated source output from handwritten source.
 - [x] Add explicit native library bootstrap, configurable load order, and structured load diagnostics.
@@ -19,7 +19,8 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 - [ ] Implement a concrete FFmpeg/Jextract inspector for version functions and required-symbol verification.
 - [ ] Define and test the supported FFmpeg ABI/version matrix.
 - [x] Add exact rational/time-base value types and conversion tests.
-- [ ] Add CI for compile/tests without requiring native FFmpeg, plus an opt-in native integration profile.
+- [x] Add CI for compile/tests without requiring native FFmpeg (JDK 22 and 25).
+- [ ] Add an opt-in native integration profile after pinning the native build matrix.
 
 **Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified capabilities; exact timestamp semantics are tested.
 

@@ -2,18 +2,20 @@
 
 ## Requirements
 
-- JDK 22 or newer with the Java 22 language/API baseline.
+- JDK 22 or newer. The source baseline is Java 22 because the generated bindings use the finalized Foreign Function & Memory API.
 - Maven 3.9 or newer.
 
-The current generated FFM binding snapshot targets the Java Foreign Function & Memory API. The initial Maven build declares Java 22 as its compiler release. This is a provisional source/build baseline, not yet a supported native deployment matrix.
+The build is verified in CI on Temurin JDK 22 (the minimum source baseline) and JDK 25 (a current LTS runtime). This is a Java build compatibility check, not yet a supported native deployment matrix.
 
 ## Build and test
 
 ```bash
-mvn test
+mvn --batch-mode --no-transfer-progress clean verify
 ```
 
-The public timestamp and native-runtime contract tests use injected loaders and do not require FFmpeg native libraries. The generated binding source is compiled as part of the current source tree; verify this on the target JDK before treating the build as a stable release baseline.
+The default build compiles the checked-in generated FFM declarations and runs unit tests without requiring FFmpeg native libraries. Native integration tests must use a separate opt-in profile after the FFmpeg header version, jextract version, generation command, and supported OS/architecture matrix are pinned.
+
+CI runs the same Maven verification command for pull requests and pushes to `main`. It uses a JDK matrix (22 and 25), Maven dependency caching, and read-only repository permissions.
 
 ## Native runtime initialization
 
@@ -34,4 +36,4 @@ A successful OS-level load does not yet verify FFmpeg ABI compatibility or requi
 
 ## Native runtime status
 
-The FFmpeg header version, jextract version, generation command, and supported OS/architecture matrix remain to be pinned. Native integration tests must be opt-in until that matrix is established.
+The FFmpeg header version, jextract version, generation command, and supported OS/architecture matrix remain to be pinned. Native integration tests remain out of the default CI path until that matrix is established.
