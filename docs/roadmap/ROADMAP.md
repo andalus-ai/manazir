@@ -33,15 +33,18 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Pass process arguments without shell interpolation; enforce timeout and bounded JSON stdout capture.
 - [x] Preserve independent container/stream clocks, exact stream PTS ticks, negative stream starts, and optional metadata.
 - [x] Test provider behavior with deterministic fake-process fixtures, including output limits and timeout handling.
+- [x] Add a generic capability-based provider registry with explicit availability, deterministic priority ordering, strict provider selection and opt-in fallback.
+- [x] Add a bounded executable `-version` smoke check that does not load native libraries and does not claim codec/operation support.
+- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.
 - [ ] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync, sparse metadata and malformed media.
 - [ ] Verify actual FFprobe behavior against installed FFmpeg/FFprobe versions.
-- [ ] Connect provider selection to runtime capability assessment and explicit configuration.
+- [ ] Wire the generic provider registry into the probe and extraction service facades using only verified operation capabilities.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
 - [ ] Preserve packet/frame timestamp provenance and verify VFR behavior with real media.
-- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.\n- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
+- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
 - [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and does not claim exact decoded-frame PTS provenance. Real CFR/VFR fixtures, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. The generic registry now provides deterministic capability selection, but service-level wiring is intentionally separate so a process executable smoke check cannot be mistaken for proof of media-operation support. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and does not claim exact decoded-frame PTS provenance. Real CFR/VFR fixtures, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
