@@ -7,7 +7,7 @@ Manazir is the reusable Java-native media execution layer for the Andalus ecosys
 README.md; docs/architecture/FFM_FOUNDATION.md; docs/architecture/ARCHITECTURE.md; docs/architecture/DIAGRAMS.md; docs/development/BUILDING.md; docs/roadmap/ROADMAP.md.
 
 ## Source baseline
-The repository currently contains generated Java FFM source only under tech.kayys.manazir.avutil; that snapshot does not expose FFmpeg component version functions. The FFmpeg runtime inspector therefore uses a narrow FFM loader-symbol adapter rather than treating those generated declarations as complete FFmpeg bindings. Generated declarations are low-level ABI-specific implementation, not a stable consumer API. Before editing or regenerating generated code, establish FFmpeg headers/version, jextract version, generation command, target platform and reproducibility. Verify current Maven/JDK assumptions; do not infer supported native deployment matrix from source compiling.
+The checked-in avutil snapshot was generated against a macOS SDK and is excluded from the portable Maven compile; it is not a supported FFmpeg ABI. The FFmpeg runtime inspector uses a narrow FFM loader-symbol adapter rather than treating generated declarations as complete FFmpeg bindings. Before regenerating generated code, establish pinned FFmpeg headers/version, jextract version, exact generation command, target platform and reproducibility.
 
 ## Architecture rules
 1. Layer generated bindings -> explicit native runtime -> typed public media API -> backend SPI/adapters -> product integrations.
@@ -24,7 +24,7 @@ The repository currently contains generated Java FFM source only under tech.kayy
 12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
 13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
 
-## Media probe implementation notes\nThe initial `media.probe` API is backend-neutral and keeps source stream PTS plus its rational time base. `FfprobeMediaProbe` is an optional process adapter: it invokes an argv vector without a shell, applies a timeout, parses typed JSON metadata, and deletes temporary files. It is not the native FFM implementation. Its current output-size check happens after the process exits; do not describe that as a hard disk quota or expose this adapter to untrusted multi-tenant workloads without adding bounded streaming/quota controls and cancellation. Frame/audio extraction is not implemented by this slice.\n\n## Implementation workflow
+## Current process probe limitations\n`FfprobeMediaProbe` is a metadata-only process provider for local file URIs. It uses argv, enforces a timeout and bounds captured stdout while running, but does not provide OS-level CPU/memory/filesystem sandboxing. Do not treat it as a hostile-input sandbox. Native FFM probing, extraction, cancellation tokens and real CFR/VFR fixtures remain open.\n\n## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
 
 ## Definition of done
