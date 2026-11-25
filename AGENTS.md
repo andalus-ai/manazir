@@ -23,9 +23,11 @@ The checked-in avutil snapshot was generated against a macOS SDK and is excluded
 11. OS library-load success is not ABI/symbol verification; do not advertise capabilities before checks pass.
 12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
 13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
+14. The canonical extraction port is `FrameExtractor` with `FrameExtractionRequest` and `FrameExtractionResult`. Do not reintroduce the pre-contract `FrameArtifact` shape into new provider APIs.
+15. A provider must reject a selection policy or output format it cannot honor; never silently downgrade `NEAREST` to `FIRST_AT_OR_AFTER`.
 
 ## Current process adapter limitations
-`FfprobeMediaProbe` provides local-file metadata probing; `FfmpegFrameExtractor` provides one local-file video frame as PNG/JPEG. Both use argv, enforce wall-clock timeouts and have bounded output handling, but neither provides OS-level CPU/memory/filesystem sandboxing. Frame seek positions are serialized to 12 decimal places for the FFmpeg CLI; do not claim exact decoded-frame PTS without a timestamp-aware verification path. Audio extraction, frame sequences, cancellation tokens, real CFR/VFR fixtures and native FFM decoding remain open.
+`FfprobeMediaProbe` provides local-file metadata probing. `FfmpegFrameExtractor` is being aligned to the canonical typed extraction contract and supports one local-file frame as PNG/JPEG with a wall-clock timeout, bounded diagnostics, temporary output validation and non-overwriting publication. Seek serialization to the FFmpeg CLI is decimal (12 fractional places); the original requested timestamp remains intact, and decoded-frame PTS is optional `showinfo` evidence. The current process provider explicitly rejects `NEAREST` and WEBP rather than pretending to support them. Neither process adapter is an OS-level sandbox. Audio extraction, frame sequences, cancellation tokens, packet timestamp provenance, native FFM decoding and OS-level CPU/memory/filesystem isolation remain open.
 
 ## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
