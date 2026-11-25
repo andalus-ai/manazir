@@ -33,8 +33,9 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Pass process arguments without shell interpolation; enforce timeout and bounded JSON stdout capture.
 - [x] Preserve independent container/stream clocks, exact stream PTS ticks, negative stream starts, and optional metadata.
 - [x] Test provider behavior with deterministic fake-process fixtures, including output limits and timeout handling.
-- [ ] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync, sparse metadata and malformed media.
-- [ ] Verify actual FFprobe behavior against installed FFmpeg/FFprobe versions.
+- [x] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync and malformed media.
+- [ ] Add sparse-metadata fixtures and broader malformed/container edge cases.
+- [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
 - [ ] Connect provider selection to runtime capability assessment and explicit configuration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
 - [ ] Expose packet/frame timestamp provenance through a typed API; the current integration test independently verifies non-uniform VFR frame PTS using FFprobe.
