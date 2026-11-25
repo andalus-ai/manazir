@@ -337,8 +337,8 @@ public final class FfprobeMediaProbe implements MediaProbe {
         return future;
     }
 
-    private static Capture capture(
-            InputStream input, long limit, Process process, boolean killOnLimit) throws IOException {
+    private static Capture capture(InputStream input, long limit, Process process, boolean killOnLimit)
+            throws IOException {
         ByteArrayOutputStream output = new ByteArrayOutputStream((int) Math.min(limit, 8192));
         byte[] buffer = new byte[8192];
         long captured = 0;
@@ -374,8 +374,7 @@ public final class FfprobeMediaProbe implements MediaProbe {
         }
     }
 
-    private static MediaProbeException failure(
-            MediaProbeException.Code code, String message, Throwable cause) {
+    private static MediaProbeException failure(MediaProbeException.Code code, String message, Throwable cause) {
         return cause == null
                 ? new MediaProbeException(code, Optional.of(BACKEND_ID), message)
                 : new MediaProbeException(code, Optional.of(BACKEND_ID), message, cause);
