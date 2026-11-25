@@ -33,23 +33,18 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Pass process arguments without shell interpolation; enforce timeout and bounded JSON stdout capture.
 - [x] Preserve independent container/stream clocks, exact stream PTS ticks, negative stream starts, and optional metadata.
 - [x] Test provider behavior with deterministic fake-process fixtures, including output limits and timeout handling.
-- [x] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR and malformed media.
+- [x] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync and malformed media.
 - [ ] Add sparse-metadata fixtures and broader malformed/container edge cases.
 - [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
-- [x] Add generic capability-based provider descriptors and deterministic selection policies.
-- [ ] Connect provider selection to concrete FFprobe/FFmpeg provider construction and runtime capability assessment.
+- [ ] Connect provider selection to runtime capability assessment and explicit configuration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
-- [x] Define backend-neutral timestamp-aware single-frame extraction contracts.
-- [x] Implement a process-backed single-frame PNG/JPEG extraction slice with validated temporary output and no-overwrite publication.
-- [x] Capture optional decoded-frame PTS and its rational filter-input time base from FFmpeg `showinfo`.
-- [ ] Prove `FIRST_AT_OR_AFTER` behavior across non-zero stream starts and more VFR edge cases; current CLI seek serialization is limited to 12 decimal places.
-- [ ] Implement `NEAREST` selection; the current process provider rejects it explicitly.
-- [ ] Implement WEBP output; the current process provider rejects it explicitly.
-- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
+- [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
 - [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
-- [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
+- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.
+- [x] Extract a selected audio stream interval to caller-selected PCM WAV with bounded execution and output.
+- [ ] Add frame sequences, encoded audio formats, cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** metadata probing and a first single-frame PNG/JPEG process provider exist behind typed ports. The extractor returns the canonical `FrameExtractionResult`, preserves the original rational request and reports decoded PTS only when `showinfo` yields it. It supports `FIRST_AT_OR_AFTER` via FFmpeg's accurate seek path, but CLI seek arguments are serialized to 12 decimal places; `NEAREST` and WEBP are rejected. Real-media CI covers MP4/MOV/MKV, audio-only, VFR timestamps and a decoded frame. M2 is not complete: exact seek behavior for non-zero starts and broader VFR fixtures, audio extraction, frame sequences, packet provenance, native FFM, cancellation and sandbox/resource isolation remain open.
+**Current slice:** local-file metadata probing, single-frame PNG/JPEG extraction, and audio-to-WAV extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction reports actual decoded-frame PTS when available. Audio extraction preserves requested rational boundaries, selects an explicit stream, emits validated PCM S16LE WAV, and reports the actual sample-frame count. Packet timestamp provenance, typed multi-frame enumeration, encoded audio formats, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
