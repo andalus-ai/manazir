@@ -1,35 +1,34 @@
 # Manazir roadmap
 
-This roadmap is based on the inspected initial repository snapshot. It separates generated ABI bindings from the stable Java media API.
+The roadmap separates portable handwritten media APIs from generated native ABI declarations. Native integration is gated on reproducible generation and an explicit platform matrix.
 
 ## M0 — Foundation audit and architecture
 
-- [x] Inspect current generated avutil source.
-- [x] Record the absence of build configuration, tests, and handwritten media facade in the current tree.
+- [x] Inspect the original generated `avutil` source snapshot.
+- [x] Record the original absence of build configuration, tests, and handwritten media facade.
 - [x] Define layering, timebase, native ownership, and Dalang integration boundaries.
-- [x] Confirm Java 22 source baseline from generated FFM API usage.
+- [x] Confirm Java 22 source baseline from FFM API usage.
 
 ## M1 — Reproducible build and runtime foundation
 
 - [x] Add an initial Maven build targeting Java 22.
-- [ ] Pin and document FFmpeg/jextract versions and generation inputs.
-- [ ] Regenerate and separate FFmpeg-specific bindings from the current avutil-only generated snapshot.
+- [x] Add CI for handwritten Java compilation and tests on JDK 22 and 25.
+- [x] Keep the non-portable macOS-SDK-generated `avutil` snapshot out of the supported compile unit.
 - [x] Add explicit native library bootstrap, configurable load order, and structured load diagnostics.
 - [x] Add typed version/inspection contracts and a conservative capability registry.
-- [x] Add an FFM-backed inspector for FFmpeg component version functions and selected stable API symbol groups.
+- [x] Add an FFM-backed inspector for component version functions and selected stable API symbol groups.
+- [x] Add exact rational/time-base value types and conversion tests.
+- [ ] Pin FFmpeg headers, jextract version, and exact generation inputs.
+- [ ] Regenerate FFmpeg-specific bindings and isolate them from host C runtime declarations.
 - [ ] Define and test the supported FFmpeg ABI/version matrix.
 - [ ] Add codec/container enumeration, hardware-device discovery, and real execution probes before advertising those capabilities.
-- [x] Add exact rational/time-base value types and conversion tests.
-- [x] Add CI for compile/tests without requiring native FFmpeg (JDK 22 and 25).
-- [ ] Add an opt-in native integration profile after pinning the native build matrix.
-- [x] Add an opt-in native integration test profile; CI coverage remains pending.
-- [ ] Verify clean JDK 22 compilation and unit tests in CI.
+- [ ] Add native integration CI after the platform matrix is pinned.
 
 **Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified component API surfaces; exact timestamp semantics are tested.
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add avformat and avcodec integration behind internal adapters (or a deliberately selected process backend).
+- [ ] Add `avformat` and `avcodec` integration behind internal adapters (or a deliberately selected process backend).
 - [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
 - [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
@@ -41,7 +40,7 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 ## M3 — Transcode, filter, and mux primitives
 
 - [ ] Add typed encoding and container options.
-- [ ] Add a safe filter-graph representation; do not treat arbitrary shell fragments as the default API.
+- [ ] Add a safe filter-graph representation; arbitrary shell fragments are not the default API.
 - [ ] Support progress, cancellation, timeouts, bounded concurrency, and cleanup.
 - [ ] Verify output streams and timestamps after render operations.
 
@@ -51,7 +50,3 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 - [ ] Add native leak/resource lifecycle tests and concurrency tests.
 - [ ] Publish versioned Java API and compatibility policy.
 - [ ] Provide examples and integration tests for Dalang without introducing Dalang dependencies into Manazir.
-
-## Guiding sequence
-
-Do not begin with a broad FFmpeg wrapper surface. First establish reproducibility and runtime safety (M1), then complete one vertical slice—probe plus timestamped extraction (M2). Add editing/render primitives only after those contracts are stable.
