@@ -28,13 +28,17 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add `avformat` and `avcodec` integration behind internal adapters (or a deliberately selected process backend).
-- [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
-- [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
+- [x] Define backend-neutral probe request/result, container, stream, frame-rate, diagnostic and structured failure contracts.
+- [x] Implement an FFprobe process provider for local-file metadata probing.
+- [x] Pass process arguments without shell interpolation; enforce timeout and bounded JSON stdout capture.
+- [x] Preserve independent container/stream clocks, exact stream PTS ticks, negative stream starts, and optional metadata.
+- [x] Test provider behavior with deterministic fake-process fixtures, including output limits and timeout handling.
+- [ ] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync, sparse metadata and malformed media.
+- [ ] Verify actual FFprobe behavior against installed FFmpeg/FFprobe versions.
+- [ ] Connect provider selection to runtime capability assessment and explicit configuration.
+- [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
+- [ ] Preserve packet/frame timestamp provenance and verify VFR behavior with real media.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
-- [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
-- [ ] Add native provider and real-media fixture coverage for CFR, VFR, A/V sync, malformed media and sparse metadata.
-- [ ] Add timestamp-preserving frame/audio extraction to caller-selected artifact destinations.
 - [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
 **Current slice:** metadata probing works through the FFprobe process adapter for local files. It does not decode/extract media or claim native FFM support. Timeout and stdout limits are enforced in-process; OS-level sandboxing and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
