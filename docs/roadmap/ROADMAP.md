@@ -31,15 +31,19 @@ This roadmap separates generated ABI bindings from the stable Java media API and
 - [x] Define backend-neutral probe request/result, container, stream, frame-rate, diagnostic and structured failure contracts.
 - [x] Preserve separate container and per-stream clocks, optional timestamps, negative stream starts, and exact frame-rate ratios in the public model.
 - [x] Define bounded probe request inputs (timeout and maximum probe bytes) and backend obligations.
-- [ ] Implement an FFmpeg-backed provider behind the typed API using avformat/avcodec or a deliberately selected process backend.
-- [ ] Connect probe execution to verified runtime capability assessment.
-- [ ] Probe real containers and enumerate codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
+- [x] Implement an isolated FFprobe process provider behind the typed API; native avformat/avcodec remains future work.
+- [x] Parse container and stream codec, dimensions, frame rates, stream time bases, PTS/duration ticks, sample rates and channel counts.
+- [x] Enforce request timeout and stdout byte budget while the child process runs; cap retained stderr diagnostics.
+- [ ] Connect native probe execution to verified runtime capability assessment.
+- [ ] Verify real CFR/VFR containers and enumerate channel layouts and codec-specific properties.
 - [ ] Preserve packet/frame timestamp provenance and verify VFR behavior with real media.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
 - [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
-- [ ] Define temp-file policy, cancellation, concurrency limits, and structured backend error mapping.
+- [ ] Add native provider and real-media fixture coverage for CFR, VFR, A/V sync, malformed media and sparse metadata.
+- [ ] Add timestamp-preserving frame/audio extraction to caller-selected artifact destinations.
+- [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Exit criteria:** Dalang can import an asset, obtain reliable stream metadata, and request timestamp-preserving frame/audio extraction through typed contracts and a verified provider.
+**Current slice:** metadata probing works through the FFprobe process adapter for local files. It does not decode/extract media or claim native FFM support. The process timeout and captured stdout budget are enforced in-process; OS-level sandboxing and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
