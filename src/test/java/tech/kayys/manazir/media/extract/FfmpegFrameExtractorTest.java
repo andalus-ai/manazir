@@ -8,6 +8,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -18,22 +19,21 @@ class FfmpegFrameExtractorTest {
     @TempDir Path tempDir;
 
     @Test
-    void extractsAndPublishesValidatedFrame() throws Exception {
+    void extractsAndPublishesValidatedFrameUsingCanonicalContract() throws Exception {
         Path source = Files.createFile(tempDir.resolve("source.mp4"));
         Path fixture = pngFixture("fixture.png", 64, 36);
         Path destination = tempDir.resolve("frame.png");
         Path executable = fakeExecutable("for last do :; done\ncp '" + fixture + "' \"$last\"\n");
-        var request = request(source, destination, executable, Duration.ofSeconds(3), 64 * 1024);
+        var request = request(source, destination, Duration.ofSeconds(3));
 
-        FrameArtifact artifact = new FfmpegFrameExtractor(executable.toString()).extract(request);
+        FrameExtractionResult result = new FfmpegFrameExtractor(executable.toString(), 64 * 1024).extract(request);
 
-        assertEquals(destination, artifact.path());
-        assertEquals("image/png", artifact.contentType());
-        assertEquals(64, artifact.width());
-        assertEquals(36, artifact.height());
-        assertTrue(artifact.sizeBytes() > 0);
-        assertEquals(new MediaTimestamp(90_000, RationalTimeBase.of(1, 90_000)), artifact.requestedPosition());
-        assertTrue(artifact.actualPosition().isEmpty(), "fake FFmpeg does not emit showinfo metadata");
+        assertEquals(destination.toAbsolutePath().normalize(), result.output());
+        assertEquals(FrameImageFormat.PNG, result.imageFormat());
+        assertEquals(Optional.of(new FrameSize(64, 36)), result.outputSize());
+        assertTrue(result.outputBytes() > 0);
+        assertTrue(result.actualTimestamp().isEmpty(), "fake FFmpeg does not emit showinfo metadata");
+        assertEquals(FfmpegFrameExtractor.BACKEND_ID, result.backendId());
         assertTrue(Files.isRegularFile(destination));
     }
 
@@ -43,7 +43,7 @@ class FfmpegFrameExtractorTest {
         Path executable = fakeExecutable("exit 0\n");
         Path destination = Files.writeString(tempDir.resolve("existing.png"), "keep");
         FrameExtractionException exception = assertThrows(FrameExtractionException.class,
-                () -> new FfmpegFrameExtractor(executable.toString()).extract(request(source, destination, executable, Duration.ofSeconds(2), 1024)));
+                () -> new FfmpegFrameExtractor(executable.toString()).extract(request(source, destination, Duration.ofSeconds(2))));
         assertEquals(FrameExtractionException.Code.INVALID_DESTINATION, exception.code());
         assertEquals("keep", Files.readString(destination));
     }
@@ -54,8 +54,8 @@ class FfmpegFrameExtractorTest {
         Path fixture = pngFixture("large.png", 64, 36);
         Path executable = fakeExecutable("for last do :; done\ncp '" + fixture + "' \"$last\"\n");
         FrameExtractionException exception = assertThrows(FrameExtractionException.class,
-                () -> new FfmpegFrameExtractor(executable.toString()).extract(request(source,
-                        tempDir.resolve("too-large.png"), executable, Duration.ofSeconds(3), 1)));
+                () -> new FfmpegFrameExtractor(executable.toString(), 1).extract(request(
+                        source, tempDir.resolve("too-large.png"), Duration.ofSeconds(3))));
         assertEquals(FrameExtractionException.Code.RESOURCE_LIMIT, exception.code());
     }
 
@@ -65,8 +65,8 @@ class FfmpegFrameExtractorTest {
         Path executable = fakeExecutable("sleep 3\n");
         Path destination = tempDir.resolve("timeout.png");
         FrameExtractionException exception = assertThrows(FrameExtractionException.class,
-                () -> new FfmpegFrameExtractor(executable.toString()).extract(request(source,
-                        destination, executable, Duration.ofMillis(100), 1024)));
+                () -> new FfmpegFrameExtractor(executable.toString()).extract(request(
+                        source, destination, Duration.ofMillis(100))));
         assertEquals(FrameExtractionException.Code.TIMEOUT, exception.code());
         assertFalse(Files.exists(destination));
         try (var files = Files.list(tempDir)) {
@@ -78,17 +78,42 @@ class FfmpegFrameExtractorTest {
     void rejectsRemoteSourceUris() throws Exception {
         Path executable = fakeExecutable("exit 0\n");
         var request = new FrameExtractionRequest(URI.create("https://example.invalid/video.mp4"), 0,
-                new MediaTimestamp(0, RationalTimeBase.of(1, 1)), tempDir.resolve("remote.png"),
-                FrameImageFormat.PNG, Duration.ofSeconds(1), 1024);
+                new MediaTimestamp(0, RationalTimeBase.of(1, 1)), FrameSelectionPolicy.FIRST_AT_OR_AFTER,
+                tempDir.resolve("remote.png"), FrameImageFormat.PNG, Optional.empty(), Duration.ofSeconds(1));
         FrameExtractionException exception = assertThrows(FrameExtractionException.class,
                 () -> new FfmpegFrameExtractor(executable.toString()).extract(request));
         assertEquals(FrameExtractionException.Code.INVALID_SOURCE, exception.code());
     }
 
-    private FrameExtractionRequest request(Path source, Path destination, Path executable, Duration timeout, long maxBytes) {
+    @Test
+    void rejectsSelectionPolicyNotImplementedByThisProvider() throws Exception {
+        Path source = Files.createFile(tempDir.resolve("source-nearest.mp4"));
+        Path executable = fakeExecutable("exit 0\n");
+        var request = new FrameExtractionRequest(source.toUri(), 0,
+                new MediaTimestamp(0, RationalTimeBase.of(1, 1)), FrameSelectionPolicy.NEAREST,
+                tempDir.resolve("nearest.png"), FrameImageFormat.PNG, Optional.empty(), Duration.ofSeconds(1));
+        FrameExtractionException exception = assertThrows(FrameExtractionException.class,
+                () -> new FfmpegFrameExtractor(executable.toString()).extract(request));
+        assertEquals(FrameExtractionException.Code.UNSUPPORTED_SELECTION, exception.code());
+    }
+
+    @Test
+    void rejectsWebpUntilTheProviderCanValidateIt() throws Exception {
+        Path source = Files.createFile(tempDir.resolve("source-webp.mp4"));
+        Path executable = fakeExecutable("exit 0\n");
+        var request = new FrameExtractionRequest(source.toUri(), 0,
+                new MediaTimestamp(0, RationalTimeBase.of(1, 1)), FrameSelectionPolicy.FIRST_AT_OR_AFTER,
+                tempDir.resolve("frame.webp"), FrameImageFormat.WEBP, Optional.empty(), Duration.ofSeconds(1));
+        FrameExtractionException exception = assertThrows(FrameExtractionException.class,
+                () -> new FfmpegFrameExtractor(executable.toString()).extract(request));
+        assertEquals(FrameExtractionException.Code.UNSUPPORTED_FORMAT, exception.code());
+    }
+
+    private FrameExtractionRequest request(Path source, Path destination, Duration timeout) {
         return new FrameExtractionRequest(source.toUri(), 0,
-                new MediaTimestamp(90_000, RationalTimeBase.of(1, 90_000)), destination.toAbsolutePath(),
-                FrameImageFormat.PNG, timeout, maxBytes);
+                new MediaTimestamp(90_000, RationalTimeBase.of(1, 90_000)),
+                FrameSelectionPolicy.FIRST_AT_OR_AFTER, destination.toAbsolutePath(),
+                FrameImageFormat.PNG, Optional.empty(), timeout);
     }
 
     private Path pngFixture(String name, int width, int height) throws IOException {

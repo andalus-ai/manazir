@@ -5,7 +5,11 @@ import java.util.Objects;
 import java.util.Optional;
 import tech.kayys.manazir.media.time.MediaTimestamp;
 
-/** Metadata for a successfully committed extracted frame. */
+/**
+ * Legacy metadata shape retained for source compatibility with early M2
+ * prototypes. New integrations should use {@link FrameExtractionResult}.
+ */
+@Deprecated(forRemoval = false)
 public record FrameArtifact(
         Path path,
         FrameImageFormat format,
@@ -28,7 +32,7 @@ public record FrameArtifact(
         if (sizeBytes <= 0 || width <= 0 || height <= 0 || streamIndex < 0) {
             throw new IllegalArgumentException("artifact size, dimensions and stream index must be positive");
         }
-        if (!contentType.equals(format.contentType())) throw new IllegalArgumentException("contentType does not match format");
+        if (!contentType.equals(format.mediaType())) throw new IllegalArgumentException("contentType does not match format");
         if (backendId.isBlank()) throw new IllegalArgumentException("backendId must not be blank");
     }
 }

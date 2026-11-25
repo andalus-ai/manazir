@@ -24,37 +24,51 @@ import tech.kayys.manazir.media.time.MediaTimestamp;
 import tech.kayys.manazir.media.time.RationalTimeBase;
 
 /**
- * FFmpeg process adapter for single-frame extraction.
+ * FFmpeg process implementation of the backend-neutral frame extraction port.
  *
- * <p>The source is never modified. Output is rendered to a sibling temporary file,
- * validated as an image, then moved into place without requesting replacement.
- * FFmpeg showinfo metadata is captured to retain the decoded frame PTS and its
- * filter-input time base. This adapter is not an OS-level sandbox for hostile media.</p>
+ * <p>Only local file URIs and PNG/JPEG output are supported. Seeking is
+ * serialized to 12 decimal places because FFmpeg's CLI accepts a decimal
+ * timestamp; the original rational request is never overwritten. showinfo
+ * supplies the decoded frame's timestamp in the filter-input time base when
+ * available. This process adapter is not an OS-level sandbox.</p>
  */
 public final class FfmpegFrameExtractor implements FrameExtractor {
     public static final String BACKEND_ID = "ffmpeg-process";
+    public static final long DEFAULT_MAX_OUTPUT_BYTES = 16L * 1024 * 1024;
     private static final long LOG_LIMIT = 64 * 1024;
     private static final Pattern TIME_BASE = Pattern.compile("config in time_base:\\s*(\\d+)\\s*/\\s*(\\d+)");
     private static final Pattern FRAME_PTS = Pattern.compile("\\bn:\\s*\\d+\\s+pts:\\s*(-?\\d+)");
     private final String executable;
+    private final long maxOutputBytes;
 
-    public FfmpegFrameExtractor() { this("ffmpeg"); }
+    public FfmpegFrameExtractor() { this("ffmpeg", DEFAULT_MAX_OUTPUT_BYTES); }
+    public FfmpegFrameExtractor(String executable) { this(executable, DEFAULT_MAX_OUTPUT_BYTES); }
 
-    public FfmpegFrameExtractor(String executable) {
+    public FfmpegFrameExtractor(String executable, long maxOutputBytes) {
         if (executable == null || executable.isBlank()) throw new IllegalArgumentException("executable must not be blank");
+        if (maxOutputBytes <= 0) throw new IllegalArgumentException("maxOutputBytes must be positive");
         this.executable = executable;
+        this.maxOutputBytes = maxOutputBytes;
     }
 
     @Override public String backendId() { return BACKEND_ID; }
 
     @Override
-    public FrameArtifact extract(FrameExtractionRequest request) throws FrameExtractionException {
+    public FrameExtractionResult extract(FrameExtractionRequest request) throws FrameExtractionException {
         java.util.Objects.requireNonNull(request, "request");
         Path source = localSource(request.source());
         if (!Files.isRegularFile(source) || !Files.isReadable(source)) {
             throw failure(FrameExtractionException.Code.INVALID_SOURCE, "Source is not a readable regular file: " + source, null);
         }
-        Path destination = request.destination();
+        if (request.imageFormat() == FrameImageFormat.WEBP) {
+            throw failure(FrameExtractionException.Code.UNSUPPORTED_FORMAT, "This provider currently supports PNG and JPEG output only", null);
+        }
+        if (request.selectionPolicy() == FrameSelectionPolicy.NEAREST) {
+            throw failure(FrameExtractionException.Code.UNSUPPORTED_SELECTION,
+                    "NEAREST selection requires bidirectional frame comparison and is not implemented by this provider", null);
+        }
+
+        Path destination = request.output();
         Path parent = destination.getParent();
         if (parent == null || !Files.isDirectory(parent) || !Files.isWritable(parent)) {
             throw failure(FrameExtractionException.Code.INVALID_DESTINATION, "Destination parent must be an existing writable directory", null);
@@ -65,25 +79,25 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
 
         Path temporary;
         try {
-            temporary = Files.createTempFile(parent, ".manazir-frame-", "." + request.format().extension());
+            temporary = Files.createTempFile(parent, ".manazir-frame-", "." + request.imageFormat().extension());
         } catch (IOException exception) {
             throw failure(FrameExtractionException.Code.INVALID_DESTINATION, "Unable to create temporary output beside destination", exception);
         }
 
         try {
-            Optional<MediaTimestamp> actualPosition = run(request, source, temporary);
+            Optional<MediaTimestamp> actualTimestamp = run(request, source, temporary);
             long size = Files.size(temporary);
             if (size <= 0) throw failure(FrameExtractionException.Code.EXTRACTION_FAILED, "FFmpeg produced an empty frame", null);
-            if (size > request.maxOutputBytes()) {
+            if (size > maxOutputBytes) {
                 throw failure(FrameExtractionException.Code.RESOURCE_LIMIT,
-                        "Extracted frame exceeded maxOutputBytes=" + request.maxOutputBytes(), null);
+                        "Extracted frame exceeded maxOutputBytes=" + maxOutputBytes, null);
             }
             BufferedImage image = ImageIO.read(temporary.toFile());
             if (image == null) throw failure(FrameExtractionException.Code.EXTRACTION_FAILED, "FFmpeg output is not a supported image", null);
+            FrameSize actualSize = new FrameSize(image.getWidth(), image.getHeight());
             moveWithoutReplacement(temporary, destination);
-            return new FrameArtifact(destination, request.format(), request.format().contentType(), size,
-                    image.getWidth(), image.getHeight(), request.position(), actualPosition,
-                    request.streamIndex(), BACKEND_ID);
+            return new FrameExtractionResult(destination, request.imageFormat(), actualTimestamp,
+                    Optional.of(actualSize), size, BACKEND_ID);
         } catch (IOException exception) {
             throw failure(FrameExtractionException.Code.EXTRACTION_FAILED, "Unable to validate or commit extracted frame", exception);
         } finally {
@@ -93,11 +107,15 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
 
     private Optional<MediaTimestamp> run(FrameExtractionRequest request, Path source, Path output)
             throws FrameExtractionException {
+        List<String> filters = new ArrayList<>();
+        request.outputSize().ifPresent(size -> filters.add("scale=" + size.width() + ":" + size.height()));
+        filters.add("showinfo");
+        String codec = request.imageFormat() == FrameImageFormat.PNG ? "png" : "mjpeg";
         List<String> args = new ArrayList<>(List.of(executable, "-nostdin", "-hide_banner", "-v", "info",
-                "-copyts", "-ss", timestampSeconds(request.position()), "-i", source.toString(),
-                "-map", "0:" + request.streamIndex(), "-vf", "showinfo", "-frames:v", "1",
-                "-an", "-sn", "-dn", "-c:v", request.format().ffmpegCodec(),
-                "-fs", Long.toString(request.maxOutputBytes()), "-f", "image2", "-y", output.toString()));
+                "-copyts", "-ss", timestampSeconds(request.targetTimestamp()), "-i", source.toString(),
+                "-map", "0:" + request.videoStreamIndex(), "-vf", String.join(",", filters),
+                "-frames:v", "1", "-an", "-sn", "-dn", "-c:v", codec,
+                "-fs", Long.toString(maxOutputBytes), "-f", "image2", "-y", output.toString()));
         final Process process;
         try {
             process = new ProcessBuilder(args).redirectErrorStream(true).start();
@@ -122,7 +140,7 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
                 throw failure(FrameExtractionException.Code.EXTRACTION_FAILED,
                         diagnostic.isEmpty() ? "FFmpeg exited with code " + process.exitValue() : diagnostic, null);
             }
-            return framePosition(captured.bytes());
+            return frameTimestamp(captured.bytes());
         } catch (InterruptedException exception) {
             terminateProcessTree(process);
             Thread.currentThread().interrupt();
@@ -162,7 +180,7 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
         return new Capture(output.toByteArray(), truncated);
     }
 
-    private static Optional<MediaTimestamp> framePosition(byte[] logBytes) {
+    private static Optional<MediaTimestamp> frameTimestamp(byte[] logBytes) {
         String log = new String(logBytes, StandardCharsets.UTF_8);
         Matcher timeBase = TIME_BASE.matcher(log);
         Matcher pts = FRAME_PTS.matcher(log);
@@ -193,7 +211,6 @@ public final class FfmpegFrameExtractor implements FrameExtractor {
     }
 
     private static void moveWithoutReplacement(Path source, Path destination) throws IOException {
-        // No REPLACE_EXISTING: a destination created by another writer wins the race.
         Files.move(source, destination);
     }
 

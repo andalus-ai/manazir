@@ -64,8 +64,8 @@ public final class MediaProviderRegistry<T> {
 
         if (candidates.isEmpty()) {
             for (Entry<T> entry : entries) {
-                String reason = rejection(entry.descriptor(), capability);
-                diagnostics.add("Provider '" + entry.descriptor().providerId() + "': " + reason);
+                diagnostics.add("Provider '" + entry.descriptor().providerId() + "': "
+                        + rejection(entry.descriptor(), capability));
             }
             if (entries.isEmpty()) diagnostics.add("No providers are registered");
             throw new ProviderSelectionException(capability,
