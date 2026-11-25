@@ -17,7 +17,7 @@ The initial audio operation extracts one bounded interval from one selected audi
 
 The interval is represented exactly at the API boundary, but FFmpeg's CLI accepts decimal seconds and audio is quantized to output sample boundaries. The artifact therefore reports requested boundaries and actual sample-frame count separately; it does not claim sample-accurate source packet PTS provenance. Output-side seeking decodes from the beginning of the source and can be expensive for long media.
 
-The subprocess timeout and output cap do not provide OS-level CPU, memory, filesystem, or network isolation. Do not expose this provider to hostile multi-tenant workloads without external sandboxing.
+The FFmpeg process currently discards stderr rather than retaining diagnostics; a follow-up should add bounded structured stderr capture. The subprocess timeout and output cap do not provide OS-level CPU, memory, filesystem, or network isolation. Do not expose this provider to hostile multi-tenant workloads without external sandboxing.
 
 ## Dalang mapping
 
