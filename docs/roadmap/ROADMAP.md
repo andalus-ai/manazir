@@ -35,7 +35,7 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
 - [ ] Define resource limits, temp-file policy, cancellation, and structured error mapping.
 
-**Exit criteria:** Dalang can import an asset, obtain reliable stream metadata, and request timestamp-preserving frame/audio extraction through typed contracts.
+**Current slice:** metadata probing works through the FFprobe process adapter for local files. It does not decode/extract media or claim native FFM support. Timeout and stdout limits are enforced in-process; OS-level sandboxing and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
