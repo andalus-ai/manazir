@@ -1,6 +1,6 @@
 # Manazir
 
-Manazir is the Java-native media foundation for the Andalus ecosystem. It provides safe, reusable media operations and FFmpeg integration so higher-level products such as Dalang do not depend on raw FFmpeg ABI details.
+Manazir is the Java-native media foundation for the Andalus ecosystem. It provides reusable media operations and FFmpeg integration so higher-level products such as Dalang do not depend on raw FFmpeg ABI details.
 
 ## Current repository state
 
@@ -10,7 +10,7 @@ The repository contains an initial low-level Java Foreign Function & Memory (FFM
 
 These generated declarations cover part of FFmpeg's `avutil` surface. They are a binding foundation, not a complete media-processing API.
 
-The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, and an optional FFprobe process provider. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
+The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, and an FFprobe process provider. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
 
 ## Architectural direction
 
@@ -22,14 +22,19 @@ The repository includes a Java 22 Maven build, exact-time primitives, backend-ne
 
 ## Design invariants
 
-- Preserve stream timestamps as integer ticks plus exact rational time bases; keep container clocks separate and preserve missing stream time bases as absent.\n- Represent frame rates as exact frames-per-second ratios, not time bases.
+- Preserve stream timestamps as integer ticks plus exact rational time bases; keep container clocks separate and preserve missing stream time bases as absent.
+- Represent frame rates as exact frames-per-second ratios, not time bases.
 - Make native memory ownership and lifetime explicit. Never return a `MemorySegment` whose owning arena has already closed.
 - Avoid loading native libraries as an accidental side effect of referencing API types.
 - Report native capabilities and library versions explicitly; fail with actionable diagnostics when a required library is missing or incompatible.
 - Keep FFmpeg operations cancellable, bounded, observable, and safe to run concurrently.
 - Do not let Dalang-specific concepts (projects, timelines, edit proposals, clipper workflows) leak into Manazir.
 
-## Media probe provider\n\n`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs. It does not yet extract frames/audio, support remote URLs, or provide an OS-level sandbox; do not expose it to hostile multi-tenant workloads without additional isolation.\n\n## Build
+## Media probe provider
+
+`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs. It does not yet extract frames/audio, support remote URLs, or provide an OS-level sandbox; do not expose it to hostile multi-tenant workloads without additional isolation.
+
+## Build
 
 See [building Manazir](docs/development/BUILDING.md).
 
