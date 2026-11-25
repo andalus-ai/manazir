@@ -36,7 +36,9 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync and malformed media.
 - [ ] Add sparse-metadata fixtures and broader malformed/container edge cases.
 - [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
-- [ ] Connect provider selection to runtime capability assessment and explicit configuration.
+- [x] Add deterministic capability-based provider selection with explicit availability, strict selection and opt-in fallback.
+- [x] Wire registry-backed facades into the probe and frame-extraction ports; selection failures map to structured backend-unavailable errors.
+- [ ] Connect provider registration to verified runtime capability assessment and explicit application configuration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
 - [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
 - [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.

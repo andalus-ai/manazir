@@ -46,9 +46,7 @@ public final class MediaProviderRegistry<T> {
                 }
             } else {
                 String rejection = rejection(preferred.descriptor(), capability);
-                if (rejection == null) {
-                    return selected(preferred, diagnostics);
-                }
+                if (rejection == null) return selected(preferred, diagnostics);
                 diagnostics.add("Provider '" + preferred.descriptor().providerId() + "': " + rejection);
                 if (policy == ProviderSelectionPolicy.STRICT) {
                     throw new ProviderSelectionException(capability,
@@ -69,24 +67,25 @@ public final class MediaProviderRegistry<T> {
                 diagnostics.add("Provider '" + entry.descriptor().providerId() + "': "
                         + rejection(entry.descriptor(), capability));
             }
+            if (entries.isEmpty()) diagnostics.add("No providers are registered");
             throw new ProviderSelectionException(capability,
                     "No available provider supports " + capability, diagnostics);
         }
 
-        Entry<T> selected = candidates.getFirst();
+        Entry<T> chosen = candidates.getFirst();
         if (preferredProviderId.isPresent()) {
-            diagnostics.add("Fell back to '" + selected.descriptor().providerId()
+            diagnostics.add("Fell back to '" + chosen.descriptor().providerId()
                     + "' because the preferred provider could not be used");
         } else {
             diagnostics.add("Selected highest-priority available provider; ties are resolved by provider ID");
         }
-        return selected(selected, diagnostics);
+        return selected(chosen, diagnostics);
     }
 
     private static String rejection(MediaProviderDescriptor descriptor, MediaCapability capability) {
         if (!descriptor.supports(capability)) return "does not support " + capability;
         return switch (descriptor.availability()) {
-            case AVAILABLE -> null;
+            case AVAILABLE -> "eligible";
             case UNAVAILABLE -> "provider is unavailable: " + descriptor.diagnostic();
             case UNKNOWN -> "availability is unknown; refusing implicit activation: " + descriptor.diagnostic();
         };

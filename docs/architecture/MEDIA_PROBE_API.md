@@ -15,6 +15,12 @@ The first Manazir operation is read-only container and stream inspection. The pu
 - Unknown codec, dimensions, audio parameters, frame rates, and durations remain absent. A provider must not guess.
 - Failures use `MediaProbeException.Code`; callers must not parse FFmpeg stderr or backend-specific messages.
 
+## Capability-routed facade
+
+`SelectingMediaProbe` adapts a `MediaProviderRegistry<MediaProbe>` to the `MediaProbe` port. It requests `MEDIA_PROBE` for each operation, applies the configured preferred provider and selection policy, and delegates to the selected provider. Selection failures become `BACKEND_UNAVAILABLE` with the registry diagnostics preserved in the exception message. Backend execution errors are passed through unchanged.
+
+Provider registration, executable checks and capability evidence are explicit application setup responsibilities. The facade does not discover tools, load native libraries, or infer capabilities.
+
 ## FFprobe process provider
 
 `FfprobeMediaProbe` implements the port with backend id `ffprobe-process`.

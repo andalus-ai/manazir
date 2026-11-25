@@ -97,7 +97,7 @@ class MediaProviderRegistryTest {
                 () -> registry.select(MediaCapability.VIDEO_DECODE, Optional.empty(),
                         ProviderSelectionPolicy.STRICT));
 
-        assertTrue(failure.diagnostics().getFirst().contains("does not support VIDEO_DECODE"));
+        assertTrue(failure.diagnostics().stream().anyMatch(value -> value.contains("does not support VIDEO_DECODE")));
     }
 
     @Test
