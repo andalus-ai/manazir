@@ -38,11 +38,12 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
 - [ ] Connect provider selection to runtime capability assessment and explicit configuration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
-- [ ] Expose packet/frame timestamp provenance through a typed API; the current integration test independently verifies non-uniform VFR frame PTS using FFprobe.
+- [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
+- [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
 - [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.\n- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
 - [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and does not claim exact decoded-frame PTS provenance. Real CFR/VFR integration fixtures now exercise the process adapters in CI; typed packet/frame timestamp provenance, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and returns actual decoded-frame PTS when FFmpeg showinfo metadata is available. Real CFR/VFR integration fixtures now exercise the process adapters in CI; packet timestamp provenance and typed multi-frame enumeration, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
