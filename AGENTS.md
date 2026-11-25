@@ -24,7 +24,7 @@ The repository currently contains generated Java FFM source only under tech.kayy
 12. Component API symbol presence is not codec/container/hardware support. Keep per-codec enumeration and execution probes separate from symbol-surface checks.
 13. The Java 22 FFM adapter requires native access at runtime; keep native integration tests opt-in and enable native access only for that test JVM.
 
-## Implementation workflow
+## Media probe implementation notes\nThe initial `media.probe` API is backend-neutral and keeps source stream PTS plus its rational time base. `FfprobeMediaProbe` is an optional process adapter: it invokes an argv vector without a shell, applies a timeout, parses typed JSON metadata, and deletes temporary files. It is not the native FFM implementation. Its current output-size check happens after the process exits; do not describe that as a hard disk quota or expose this adapter to untrusted multi-tenant workloads without adding bounded streaming/quota controls and cancellation. Frame/audio extraction is not implemented by this slice.\n\n## Implementation workflow
 Inspect generated source/provenance first. Establish reproducible build and tests before broad API. Add typed contracts and tests before native operations. Validate ABI on supported platforms. Keep generated and handwritten changes separate. Run narrow tests then full build; report exactly what ran and environmental limits.
 
 ## Definition of done
