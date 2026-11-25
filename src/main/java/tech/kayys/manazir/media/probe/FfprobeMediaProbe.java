@@ -68,7 +68,7 @@ public final class FfprobeMediaProbe implements MediaProbe {
         CompletableFuture<Capture> stderr = captureAsync(process.getErrorStream(), STDERR_LIMIT, process, false);
         try {
             if (!process.waitFor(timeoutMillis(request.timeout()), TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly();
+                terminateProcessTree(process);
                 process.waitFor();
                 throw failure(MediaProbeException.Code.TIMEOUT, "FFprobe exceeded timeout of " + request.timeout(), null);
             }
@@ -85,14 +85,14 @@ public final class FfprobeMediaProbe implements MediaProbe {
             }
             return parse(request.source(), output.bytes());
         } catch (InterruptedException exception) {
-            process.destroyForcibly();
+            terminateProcessTree(process);
             Thread.currentThread().interrupt();
             throw failure(MediaProbeException.Code.CANCELLED, "FFprobe wait was interrupted", exception);
         } catch (ExecutionException exception) {
-            process.destroyForcibly();
+            terminateProcessTree(process);
             throw failure(MediaProbeException.Code.PROBE_FAILED, "Unable to collect FFprobe output", exception.getCause());
         } finally {
-            if (process.isAlive()) process.destroyForcibly();
+            if (process.isAlive()) terminateProcessTree(process);
         }
     }
 
@@ -253,10 +253,16 @@ public final class FfprobeMediaProbe implements MediaProbe {
             if (keep > 0) { output.write(buffer, 0, keep); captured += keep; }
             if (keep < read) {
                 truncated = true;
-                if (killOnLimit) { process.destroyForcibly(); break; }
+                if (killOnLimit) { terminateProcessTree(process); break; }
             }
         }
         return new Capture(output.toByteArray(), truncated);
+    }
+
+
+    private static void terminateProcessTree(Process process) {
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
     }
 
     private static long timeoutMillis(Duration timeout) {
