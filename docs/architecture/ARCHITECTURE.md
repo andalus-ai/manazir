@@ -6,7 +6,7 @@ Manazir provides reusable Java-native media execution for Andalus products. It h
 ## Layer model
 1. Generated jextract FFM bindings: low-level ABI declarations, isolated and reproducibly generated.
 2. Native runtime: explicit library loading, platform/version/symbol checks, diagnostics and lifecycle.
-3. Public media API: typed timestamps, media sources, probe reports, streams, extraction/transcode requests, progress, cancellation and errors.
+3. Public media API: typed timestamps, probe requests/reports, container and stream metadata, extraction/transcode requests, progress, cancellation and errors.
 4. Backend SPI: native FFM backend and optional process-isolated FFmpeg backend.
 5. Product adapters: Dalang and other consumers depend only on stable public contracts.
 
@@ -17,9 +17,14 @@ Constructing API values/services does not load native libraries. Explicit initia
 - No FFM MemorySegment, native pointer, generated struct or backend enum in public API.
 - Native buffers are copied or exposed through an explicit scoped resource contract; never return expired memory.
 - Media time is integer ticks plus rational timebase; rescaling has explicit rounding.
-- Container, stream, packet and decoded-frame timestamps remain distinct.
+- Container and stream timestamps use independent clocks; packet and decoded-frame timestamps remain distinct.
+- Frame rates are represented as frames/second rational values, not timebases.
+- Missing metadata remains absent. Average and nominal frame rates do not reconstruct VFR presentation timestamps.
 - Typed options and structured diagnostics; no arbitrary shell strings.
 - Every long operation supports bounded resources, progress, cancellation and cleanup.
+
+## Current typed probe contract
+The initial public contract lives under `tech.kayys.manazir.media.probe`: `MediaProbe`, `MediaProbeRequest`, `MediaProbeResult`, `MediaContainerInfo`, `MediaStreamInfo`, `FrameRate`, `ProbeDiagnostic`, and `MediaProbeException`. It defines API semantics only; no FFmpeg provider is implemented yet. See [MEDIA_PROBE_API.md](MEDIA_PROBE_API.md).
 
 ## Backend strategy
 Native FFM backend offers in-process efficiency but requires strict ABI/platform validation and memory safety. Process backend offers isolation and broader deployment flexibility but incurs process/serialization overhead. Both implement the same typed contracts. Select backend by explicit configuration/capability, not hidden fallback that changes semantics.

@@ -33,7 +33,9 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
 - [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
-- [ ] Define resource limits, temp-file policy, cancellation, and structured error mapping.
+- [ ] Add native provider and real-media fixture coverage for CFR, VFR, A/V sync, malformed media and sparse metadata.
+- [ ] Add timestamp-preserving frame/audio extraction to caller-selected artifact destinations.
+- [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
 **Current slice:** metadata probing works through the FFprobe process adapter for local files. It does not decode/extract media or claim native FFM support. Timeout and stdout limits are enforced in-process; OS-level sandboxing and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
