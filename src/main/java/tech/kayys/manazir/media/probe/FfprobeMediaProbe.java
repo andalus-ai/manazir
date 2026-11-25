@@ -144,7 +144,9 @@ public final class FfprobeMediaProbe implements MediaProbe {
     }
 
     private MediaStreamInfo parseStream(JsonNode node, List<ProbeDiagnostic> diagnostics) throws IOException {
-        int index = integer(node, "index").orElseThrow(() -> new IOException("stream is missing a valid index"));
+        OptionalInt indexValue = integer(node, "index");
+        if (indexValue.isEmpty()) throw new IOException("stream is missing a valid index");
+        int index = indexValue.getAsInt();
         Optional<RationalTimeBase> timeBase = rational(node, "time_base");
         Optional<MediaTimestamp> start = streamTimestamp(longValue(node, "start_pts"), timeBase, index, "start_pts", diagnostics);
         Optional<MediaTimestamp> duration = streamTimestamp(longValue(node, "duration_ts"), timeBase, index, "duration_ts", diagnostics);
