@@ -40,10 +40,11 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
 - [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
 - [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
-- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.\n- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
-- [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
+- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.
+- [x] Extract a selected audio stream interval to caller-selected PCM WAV with bounded execution and output.
+- [ ] Add frame sequences, encoded audio formats, cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and returns actual decoded-frame PTS when FFmpeg showinfo metadata is available. Real CFR/VFR integration fixtures now exercise the process adapters in CI; packet timestamp provenance and typed multi-frame enumeration, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing, single-frame PNG/JPEG extraction, and audio-to-WAV extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction reports actual decoded-frame PTS when available. Audio extraction preserves requested rational boundaries, selects an explicit stream, emits validated PCM S16LE WAV, and reports the actual sample-frame count. Packet timestamp provenance, typed multi-frame enumeration, encoded audio formats, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
