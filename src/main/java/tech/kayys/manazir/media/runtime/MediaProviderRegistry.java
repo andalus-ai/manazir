@@ -66,10 +66,8 @@ public final class MediaProviderRegistry<T> {
 
         if (candidates.isEmpty()) {
             for (Entry<T> entry : entries) {
-                if (entry.descriptor().supports(capability)) {
-                    diagnostics.add("Provider '" + entry.descriptor().providerId() + "': "
-                            + rejection(entry.descriptor(), capability));
-                }
+                diagnostics.add("Provider '" + entry.descriptor().providerId() + "': "
+                        + rejection(entry.descriptor(), capability));
             }
             throw new ProviderSelectionException(capability,
                     "No available provider supports " + capability, diagnostics);
