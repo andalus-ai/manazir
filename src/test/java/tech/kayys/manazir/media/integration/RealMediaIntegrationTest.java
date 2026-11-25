@@ -74,7 +74,7 @@ class RealMediaIntegrationTest {
         Path vfr = tempDir.resolve("variable-rate.mkv");
         run(List.of("ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
                 "-f", "lavfi", "-i", "testsrc=size=160x90:rate=30:duration=1",
-                "-vf", "select=eq(n,0)+eq(n,1)+eq(n,4)+eq(n,5)+eq(n,11)+eq(n,12)+eq(n,20)",
+                "-vf", "select=eq(n\\,0)+eq(n\\,1)+eq(n\\,4)+eq(n\\,5)+eq(n\\,11)+eq(n\\,12)+eq(n\\,20)",
                 "-fps_mode", "vfr", "-c:v", "mpeg4", "-pix_fmt", "yuv420p", vfr.toString()));
 
         var result = new FfprobeMediaProbe().probe(MediaProbeRequest.defaults(vfr.toUri()));
