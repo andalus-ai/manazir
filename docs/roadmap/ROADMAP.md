@@ -37,11 +37,11 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [ ] Verify actual FFprobe behavior against installed FFmpeg/FFprobe versions.
 - [ ] Connect provider selection to runtime capability assessment and explicit configuration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
-- [ ] Preserve packet/frame timestamp provenance and verify VFR behavior with real media.
+- [ ] Expose packet/frame timestamp provenance through a typed API; the current integration test independently verifies non-uniform VFR frame PTS using FFprobe.
 - [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.\n- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
 - [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and does not claim exact decoded-frame PTS provenance. Real CFR/VFR fixtures, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and does not claim exact decoded-frame PTS provenance. Real CFR/VFR integration fixtures now exercise the process adapters in CI; typed packet/frame timestamp provenance, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
