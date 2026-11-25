@@ -10,26 +10,26 @@ The repository contains an initial low-level Java Foreign Function & Memory (FFM
 
 These generated declarations cover part of FFmpeg's `avutil` surface. They are a binding foundation, not a complete media-processing API.
 
-The repository now includes an initial Maven build targeting Java 22 and handwritten exact-time primitives under `tech.kayys.manazir.media.time`. This build baseline and the generated binding compilation still require verification on a clean JDK 22 environment. There is not yet a higher-level probe/extraction facade or checked-in `avcodec`/`avformat` integration.
+The repository includes a Java 22 Maven build, exact-time primitives, backend-neutral media-probe contracts, and an optional FFprobe process provider. The checked-in generated avutil snapshot was generated against a macOS SDK and is excluded from portable Maven compilation until reproducible FFmpeg-specific bindings are available.
 
 ## Architectural direction
 
 1. **Generated bindings** — low-level, version/platform-sensitive FFM declarations. Treat generated output as an implementation detail.
 2. **Native runtime** — library discovery, ABI/platform checks, capability reporting, and native resource lifecycle.
 3. **Typed media API** — stable Java contracts for probing, streams, timestamps, extraction, transcoding, progress, cancellation, and diagnostics.
-4. **Execution adapters** — native FFmpeg FFM backend first; a process-based FFmpeg backend may be added where operational isolation or portability is preferable.
+4. **Execution adapters** — the initial isolated FFprobe process provider is implemented; a native FFmpeg FFM provider remains gated on reproducible bindings and ABI verification.
 5. **Product integrations** — Dalang and other consumers depend on typed Manazir contracts, never generated binding classes.
 
 ## Design invariants
 
-- Preserve media timestamps as integer ticks plus an explicit rational time base; do not use floating-point seconds as canonical time.
+- Preserve stream timestamps as integer ticks plus exact rational time bases; keep container clocks separate and preserve missing stream time bases as absent.\n- Represent frame rates as exact frames-per-second ratios, not time bases.
 - Make native memory ownership and lifetime explicit. Never return a `MemorySegment` whose owning arena has already closed.
 - Avoid loading native libraries as an accidental side effect of referencing API types.
 - Report native capabilities and library versions explicitly; fail with actionable diagnostics when a required library is missing or incompatible.
 - Keep FFmpeg operations cancellable, bounded, observable, and safe to run concurrently.
 - Do not let Dalang-specific concepts (projects, timelines, edit proposals, clipper workflows) leak into Manazir.
 
-## Build
+## Media probe provider\n\n`FfprobeMediaProbe` implements the typed `MediaProbe` port without loading native libraries. It accepts local file URIs, uses an argument vector rather than a shell, applies a wall-clock timeout, and bounds captured JSON stdout while the child runs. It does not yet extract frames/audio, support remote URLs, or provide an OS-level sandbox; do not expose it to hostile multi-tenant workloads without additional isolation.\n\n## Build
 
 See [building Manazir](docs/development/BUILDING.md).
 
