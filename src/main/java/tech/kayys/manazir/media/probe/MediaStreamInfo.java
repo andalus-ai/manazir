@@ -22,8 +22,8 @@ public record MediaStreamInfo(
         OptionalInt height,
         OptionalInt sampleRate,
         OptionalInt channels,
-        Optional<RationalTimeBase> averageFrameRate,
-        Optional<RationalTimeBase> nominalFrameRate) {
+        Optional<FrameRate> averageFrameRate,
+        Optional<FrameRate> nominalFrameRate) {
 
     public MediaStreamInfo {
         if (index < 0) throw new IllegalArgumentException("index must not be negative");
