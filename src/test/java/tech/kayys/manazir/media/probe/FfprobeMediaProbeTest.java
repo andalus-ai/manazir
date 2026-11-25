@@ -102,6 +102,31 @@ class FfprobeMediaProbeTest {
         assertEquals(MediaProbeException.Code.INVALID_SOURCE, exception.code());
     }
 
+    @Test
+    void rejectsUnsafeFormatHintBeforeStartingProcess() throws Exception {
+        Path source = Files.createFile(tempDir.resolve("unsafe-hint.mp4"));
+        var request = new MediaProbeRequest(source.toUri(), Optional.of("mp4;touch /tmp/pwned"),
+                Duration.ofSeconds(1), 1024);
+
+        MediaProbeException exception = assertThrows(MediaProbeException.class,
+                () -> new FfprobeMediaProbe("/does/not/matter").probe(request));
+
+        assertEquals(MediaProbeException.Code.INVALID_SOURCE, exception.code());
+    }
+
+    @Test
+    void mapsNonZeroExitToStructuredFailure() throws Exception {
+        Path source = Files.createFile(tempDir.resolve("failed.mp4"));
+        Path executable = fakeExecutable("echo 'invalid media' >&2\nexit 7\n");
+        var request = new MediaProbeRequest(source.toUri(), Optional.empty(), Duration.ofSeconds(3), 1024);
+
+        MediaProbeException exception = assertThrows(MediaProbeException.class,
+                () -> new FfprobeMediaProbe(executable.toString()).probe(request));
+
+        assertEquals(MediaProbeException.Code.PROBE_FAILED, exception.code());
+        assertTrue(exception.getMessage().contains("invalid media"));
+    }
+
     private Path fakeExecutable(String script) throws IOException {
         Path executable = tempDir.resolve("fake-ffprobe.sh");
         Files.writeString(executable, "#!/bin/sh\n" + script, StandardCharsets.UTF_8);
