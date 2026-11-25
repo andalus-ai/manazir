@@ -10,19 +10,21 @@ The repository contains an initial low-level Java Foreign Function & Memory (FFM
 
 These generated declarations cover part of FFmpeg's `avutil` surface. They are a binding foundation, not a complete media-processing API.
 
-The repository now includes an initial Maven build targeting Java 22 and handwritten exact-time primitives under `tech.kayys.manazir.media.time`. This build baseline and the generated binding compilation still require verification on a clean JDK 22 environment. There is not yet a higher-level probe/extraction facade or checked-in `avcodec`/`avformat` integration.
+The repository includes an initial Maven build targeting Java 22, exact-time primitives under `tech.kayys.manazir.media.time`, and backend-neutral media-probe contracts under `tech.kayys.manazir.media.probe`. The probe API is currently a contract only: no FFmpeg/FFM or process-backed probe provider is implemented yet, and there is no checked-in `avcodec`/`avformat` integration.
 
 ## Architectural direction
 
 1. **Generated bindings** — low-level, version/platform-sensitive FFM declarations. Treat generated output as an implementation detail.
 2. **Native runtime** — library discovery, ABI/platform checks, capability reporting, and native resource lifecycle.
 3. **Typed media API** — stable Java contracts for probing, streams, timestamps, extraction, transcoding, progress, cancellation, and diagnostics.
-4. **Execution adapters** — native FFmpeg FFM backend first; a process-based FFmpeg backend may be added where operational isolation or portability is preferable.
+4. **Execution adapters** — native FFmpeg FFM backend and/or a process-based backend behind the same typed API.
 5. **Product integrations** — Dalang and other consumers depend on typed Manazir contracts, never generated binding classes.
 
 ## Design invariants
 
 - Preserve media timestamps as integer ticks plus an explicit rational time base; do not use floating-point seconds as canonical time.
+- Keep container and per-stream clocks separate; represent frame rates as exact frames/second ratios.
+- Preserve missing metadata as absent; never infer VFR presentation timestamps from nominal frame rate.
 - Make native memory ownership and lifetime explicit. Never return a `MemorySegment` whose owning arena has already closed.
 - Avoid loading native libraries as an accidental side effect of referencing API types.
 - Report native capabilities and library versions explicitly; fail with actionable diagnostics when a required library is missing or incompatible.
@@ -35,4 +37,4 @@ See [building Manazir](docs/development/BUILDING.md).
 
 ## Architecture
 
-See [architecture overview](docs/architecture/ARCHITECTURE.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
+See [architecture overview](docs/architecture/ARCHITECTURE.md), [typed probe API](docs/architecture/MEDIA_PROBE_API.md), [FFM foundation](docs/architecture/FFM_FOUNDATION.md), [Mermaid diagrams](docs/architecture/DIAGRAMS.md), [build instructions](docs/development/BUILDING.md), and [roadmap](docs/roadmap/ROADMAP.md).
