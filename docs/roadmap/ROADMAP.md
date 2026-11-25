@@ -29,14 +29,14 @@ This roadmap is based on the inspected initial repository snapshot. It separates
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add avformat and avcodec integration behind internal adapters (or a deliberately selected process backend).
-- [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
-- [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
+- [x] Add the first typed probe API and an isolated `ffprobe` process backend; native `avformat`/`avcodec` adapter remains future work.
+- [x] Probe container/stream metadata including codecs, dimensions, frame-rate strings, duration, sample rate, channels and channel layout.
+- [x] Preserve stream time bases, start PTS and duration ticks; do not synthesize missing timestamps.
 - [ ] Extract timestamped video frames and audio segments to caller-selected artifact destinations.
 - [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
 - [ ] Define resource limits, temp-file policy, cancellation, and structured error mapping.
 
-**Exit criteria:** Dalang can import an asset, obtain reliable stream metadata, and request timestamp-preserving frame/audio extraction through typed contracts.
+**Current slice:** typed probing is available through an `ffprobe` subprocess adapter. Extraction, fixture coverage (including VFR), process-output hard limits while running, cancellation and full M2 exit criteria remain open. The backend uses argv rather than a shell and applies a wall-clock timeout, but temporary-output disk usage still needs a hard runtime quota.
 
 ## M3 — Transcode, filter, and mux primitives
 
