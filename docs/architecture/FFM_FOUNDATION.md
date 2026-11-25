@@ -10,32 +10,41 @@
 
 ## Explicit initialization
 
-Use `NativeRuntime.system().initialize(NativeRuntimeConfig.ffmpegDefaults())` to request loading of the configured FFmpeg libraries. Constructing the runtime, config, timestamp, or report types does not load native code.
+Use NativeRuntime.system().initialize(NativeRuntimeConfig.ffmpegDefaults()) to request loading of the configured FFmpeg libraries. Constructing the runtime, config, timestamp, or report types does not load native code.
 
 The default order is avutil, swresample, swscale, avcodec, avformat, avfilter. This is a pragmatic dependency-oriented order, not an ABI compatibility guarantee. The actual supported FFmpeg version matrix and platform packaging still need to be pinned.
 
-In non-fail-fast mode, initialization attempts every configured library and returns a report containing successful loads and diagnostics for failures. In fail-fast mode, the first failure stops initialization and throws `NativeRuntimeException` with the partial report.
+## FFmpeg version and symbol inspection
 
-## Verification and capability registry
+After successful loading, pass the load report to NativeRuntimeVerifier with FfmpegNativeLibraryInspector. The inspector uses FfmNativeSymbolAccess, backed by Java 22 Linker and SymbolLookup.loaderLookup(), to resolve and invoke the component version functions:
 
-`NativeRuntimeVerifier` accepts a `NativeLibraryInspector` adapter and invokes it only for libraries that were successfully loaded. The adapter reports the library version and capability assessments. Version integers can be decoded using FFmpeg's `AV_VERSION_INT(major, minor, micro)` representation through `NativeLibraryVersion.fromFfmpeg`.
+- avutil_version
+- swresample_version
+- swscale_version
+- avcodec_version
+- avformat_version
+- avfilter_version
 
-The registry deliberately distinguishes:
+The version integer is decoded using FFmpeg's AV_VERSION_INT(major, minor, micro) representation. The inspector also resolves selected stable component API symbol groups for probing/demux/mux, codec send/receive, scaling, resampling, and filter graph operations.
 
-- `VERIFIED`: an adapter checked the relevant ABI/version constraints and required symbols.
-- `UNAVAILABLE`: an adapter has evidence that the capability cannot be used.
-- `UNKNOWN`: no sufficient evidence has been supplied.
+The capability registry distinguishes:
 
-The core runtime does not infer codecs, formats, filters, or hardware acceleration from the presence of a shared library. An adapter must not mark a capability VERIFIED based only on successful `System.loadLibrary`. The current implementation supplies the typed SPI and conservative registry; a concrete FFmpeg/Jextract inspector and platform/version compatibility matrix remain follow-up work.
+- VERIFIED: the required component API symbols resolved.
+- UNAVAILABLE: one or more required component API symbols are absent.
+- UNKNOWN: no sufficient evidence has been supplied.
 
-## Important limitation
+This is an API-surface check, not proof that a particular codec, container, pixel format, hardware device, or media file is supported. Codec enumeration, hardware-device discovery, ABI compatibility policy, and real execution probes are still required before making those claims.
 
-A successful `System.loadLibrary` call only confirms that the operating system loader loaded the named library. It does not prove that generated bindings match the library ABI or that required FFmpeg symbols are available. Likewise, the new inspection SPI does not itself query native functions until a concrete inspector is connected.
+The current generated Java snapshot contains only the tech.kayys.manazir.avutil package and does not expose these FFmpeg component version functions. The inspector therefore uses the narrow FFM symbol-access adapter directly. Generated binding provenance and a reproducible FFmpeg-specific jextract pipeline remain open work.
+
+## Native integration tests
+
+Run mvn -Pnative-integration test on a machine with FFmpeg shared libraries installed. This opt-in profile enables native access for the test JVM. The regular unit-test suite uses injected symbol access and does not require native libraries.
 
 ## Safety
 
 - Never load native code in static initializers.
-- Do not expose FFM `MemorySegment`, native pointers, or generated structs from public APIs.
+- Do not expose FFM MemorySegment, native pointers, or generated structs from public APIs.
 - Keep native memory ownership scoped and explicit.
 - Use typed options rather than arbitrary command strings.
 - Treat native initialization as process-level state; do not claim that libraries can be safely unloaded.
