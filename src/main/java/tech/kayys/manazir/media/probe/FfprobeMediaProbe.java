@@ -239,47 +239,6 @@ public final class FfprobeMediaProbe implements MediaProbe {
             case "attachment" -> MediaStreamType.ATTACHMENT;
             default -> MediaStreamType.UNKNOWN;
         };
-        return new MediaStream(integer(n, "index", 0), type, text(n, "codec_name"), rational(text(n, "time_base")),
-                longValue(n, "start_pts"), longValue(n, "duration_ts"), nullableInt(n, "width"),
-                nullableInt(n, "height"), text(n, "pix_fmt"), text(n, "sample_fmt"),
-                nullableInt(n, "sample_rate"), nullableInt(n, "channels"), text(n, "channel_layout"),
-                text(n, "avg_frame_rate"), text(n, "r_frame_rate"));
-    }
-
-    private static RationalTimeBase rational(String value) {
-        if (value == null || value.equals("0/0")) return null;
-        String[] parts = value.split("/", -1);
-        if (parts.length != 2) return null;
-        try {
-            long numerator = Long.parseLong(parts[0]);
-            long denominator = Long.parseLong(parts[1]);
-            return numerator > 0 && denominator > 0 ? new RationalTimeBase(numerator, denominator) : null;
-        } catch (NumberFormatException e) { return null; }
-    }
-
-    private static String text(JsonNode node, String key) {
-        JsonNode value = node.get(key);
-        return value == null || value.isNull() || value.asText().equals("N/A") ? null : value.asText();
-    }
-    private static Long longValue(JsonNode node, String key) {
-        String value = text(node, key);
-        try { return value == null ? null : Long.valueOf(value); }
-        catch (NumberFormatException e) { return null; }
-    }
-    private static Integer nullableInt(JsonNode node, String key) {
-        Long value = longValue(node, key);
-        return value == null || value < Integer.MIN_VALUE || value > Integer.MAX_VALUE ? null : value.intValue();
-    }
-    private static int integer(JsonNode node, String key, int fallback) {
-        Integer value = nullableInt(node, key);
-        return value == null ? fallback : value;
-    }
-    private static BigDecimal decimal(JsonNode node, String key) {
-        String value = text(node, key);
-        try { return value == null ? null : new BigDecimal(value); }
-        catch (NumberFormatException e) { return null; }
-    }
-}
     }
 
     private static CompletableFuture<Capture> captureAsync(InputStream input, long limit, Process process, boolean killOnLimit) {
