@@ -99,6 +99,7 @@ class RealMediaIntegrationTest {
         assertEquals(160, artifact.width());
         assertEquals(90, artifact.height());
         assertEquals(367, artifact.requestedPosition().ticks());
+        assertEquals(new MediaTimestamp(367, RationalTimeBase.of(1, 1_000)), artifact.actualPosition().orElseThrow());
     }
 
     @Test
