@@ -2,6 +2,7 @@ package tech.kayys.manazir.media.extract;
 
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 import tech.kayys.manazir.media.time.MediaTimestamp;
 
 /** Metadata for a successfully committed extracted frame. */
@@ -13,6 +14,7 @@ public record FrameArtifact(
         int width,
         int height,
         MediaTimestamp requestedPosition,
+        Optional<MediaTimestamp> actualPosition,
         int streamIndex,
         String backendId) {
 
@@ -21,6 +23,7 @@ public record FrameArtifact(
         Objects.requireNonNull(format, "format");
         Objects.requireNonNull(contentType, "contentType");
         Objects.requireNonNull(requestedPosition, "requestedPosition");
+        actualPosition = Objects.requireNonNull(actualPosition, "actualPosition");
         Objects.requireNonNull(backendId, "backendId");
         if (sizeBytes <= 0 || width <= 0 || height <= 0 || streamIndex < 0) {
             throw new IllegalArgumentException("artifact size, dimensions and stream index must be positive");

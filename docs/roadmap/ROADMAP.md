@@ -28,18 +28,22 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 
 ## M2 — Typed media probe and extraction
 
-- [ ] Add `avformat` and `avcodec` integration behind internal adapters (or a deliberately selected process backend).
-- [ ] Probe containers, streams, codecs, dimensions, frame rates, durations, sample rates, and channel layouts.
-- [ ] Preserve stream time bases, start times, duration ticks, and timestamp provenance.
-- [x] Define backend-neutral timestamped video frame extraction request/result/service contracts.
-- [ ] Implement a process-backed frame extractor with verified timestamp-selection semantics.
-- [ ] Extract audio segments to caller-selected artifact destinations.
-- [ ] Add fixtures for CFR, VFR, audio/video synchronization, missing metadata, and malformed media.
-- [ ] Add native provider and real-media fixture coverage for CFR, VFR, A/V sync, malformed media and sparse metadata.
-- [ ] Add timestamp-preserving frame/audio extraction to caller-selected artifact destinations.
+- [x] Define backend-neutral probe request/result, container, stream, frame-rate, diagnostic and structured failure contracts.
+- [x] Implement an FFprobe process provider for local-file metadata probing.
+- [x] Pass process arguments without shell interpolation; enforce timeout and bounded JSON stdout capture.
+- [x] Preserve independent container/stream clocks, exact stream PTS ticks, negative stream starts, and optional metadata.
+- [x] Test provider behavior with deterministic fake-process fixtures, including output limits and timeout handling.
+- [x] Add real-media fixtures for MP4, MOV, MKV, audio-only, CFR, VFR, A/V sync and malformed media.
+- [ ] Add sparse-metadata fixtures and broader malformed/container edge cases.
+- [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
+- [ ] Connect provider selection to runtime capability assessment and explicit configuration.
+- [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
+- [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
+- [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
+- [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.\n- [ ] Extract audio segments and frame sequences to caller-selected artifact destinations.
 - [ ] Add cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** metadata probing works through the FFprobe process adapter for local files. Backend-neutral frame-extraction contracts now model the source stream index, exact target timestamp/time base, frame-selection policy, output format/dimensions, destination, and timeout. No frame-extraction provider is implemented yet; the contracts do not imply that a frame can already be extracted. The probe adapter does not claim native FFM support. Timeout and stdout limits are enforced in-process; OS-level sandboxing and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing and single-frame PNG/JPEG extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction retains the requested rational timestamp but serializes the CLI seek to 12 decimal places and returns actual decoded-frame PTS when FFmpeg showinfo metadata is available. Real CFR/VFR integration fixtures now exercise the process adapters in CI; packet timestamp provenance and typed multi-frame enumeration, audio extraction, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
