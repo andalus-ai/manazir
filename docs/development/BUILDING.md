@@ -13,7 +13,7 @@ CI verifies the handwritten Java source and unit tests on Temurin JDK 22 and 25.
 mvn --batch-mode --no-transfer-progress clean verify
 ```
 
-The default build includes Jackson Databind for parsing FFprobe JSON metadata and does not require FFmpeg native libraries. Runtime and timestamp contract tests use injected dependencies and deterministic values.
+The default build includes Jackson Databind for parsing FFprobe JSON metadata and does not require FFmpeg native libraries. Real-media integration tests use the FFmpeg and FFprobe command-line tools when available; tests are skipped when either executable is absent. CI installs the toolchain explicitly so these tests run in the JDK 22/25 matrix. Runtime and timestamp contract tests continue to use deterministic values.
 
 ## Generated binding status
 
