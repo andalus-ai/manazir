@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -43,7 +44,7 @@ class ExecutableAvailabilityCheckTest {
     }
 
     private Path script(String body) throws IOException {
-        Path path = tempDir.resolve("fake-tool-" + Files.list(tempDir).count() + ".sh");
+        Path path = tempDir.resolve("fake-tool-" + UUID.randomUUID() + ".sh");
         Files.writeString(path, "#!/bin/sh\n" + body + "\n");
         if (!path.toFile().setExecutable(true)) throw new IOException("cannot make test executable");
         return path;
