@@ -73,8 +73,8 @@ class FfmpegCapabilityInspectorTest {
     @Test
     void enforcesCommandTimeout() throws Exception {
         Path executable = script("""
-                case "$1" in
-                  -version) echo 'ffmpeg version test';;
+                case "$*" in
+                  *-version*) echo 'ffmpeg version test';;
                   *-decoders*) sleep 2;;
                 esac
                 """);
