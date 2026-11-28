@@ -3,11 +3,10 @@ package tech.kayys.manazir.media.extract;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tech.kayys.manazir.media.time.MediaTimestamp;
@@ -37,11 +36,10 @@ class FfmpegAudioExtractorTest {
         assertEquals("keep", Files.readString(output));
     }
 
-
     @Test
     void includesBoundedStderrInStructuredFailure() throws Exception {
         Path source = Files.writeString(tempDir.resolve("source-diagnostic.wav"), "source");
-        Path executable = script("printf 'fixture diagnostic: missing stream' >&2\\nexit 17\\n");
+        Path executable = script("printf 'fixture diagnostic: missing stream' >&2\nexit 17\n");
         var request = new AudioExtractionRequest(source.toUri(), 0, at(0), at(1_000),
                 tempDir.resolve("diagnostic.wav"), 48_000, 2, Duration.ofSeconds(5), 1_000_000);
 
@@ -56,7 +54,7 @@ class FfmpegAudioExtractorTest {
     @Test
     void terminatesProcessWhenDiagnosticOutputExceedsBound() throws Exception {
         Path source = Files.writeString(tempDir.resolve("source-overflow.wav"), "source");
-        Path executable = script("i=0\\nwhile [ $i -lt 100 ]; do printf '%1024s' x >&2; i=$((i+1)); done\\n");
+        Path executable = script("i=0\nwhile [ $i -lt 100 ]; do printf '%1024s' x >&2; i=$((i+1)); done\n");
         var request = new AudioExtractionRequest(source.toUri(), 0, at(0), at(1_000),
                 tempDir.resolve("overflow.wav"), 48_000, 2, Duration.ofSeconds(5), 1_000_000);
 
@@ -70,11 +68,12 @@ class FfmpegAudioExtractorTest {
 
     private Path script(String body) throws Exception {
         Path executable = tempDir.resolve("fake-ffmpeg-" + System.nanoTime() + ".sh");
-        Files.writeString(executable, "#!/bin/sh\\n" + body, StandardCharsets.UTF_8);
+        Files.writeString(executable, "#!/bin/sh\n" + body, StandardCharsets.UTF_8);
         assertTrue(executable.toFile().setExecutable(true));
         return executable;
     }
-\n    private static MediaTimestamp at(long ticks) {
+
+    private static MediaTimestamp at(long ticks) {
         return new MediaTimestamp(ticks, RationalTimeBase.of(1, 1_000));
     }
 }
