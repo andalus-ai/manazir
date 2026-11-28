@@ -296,8 +296,6 @@ public final class FfmpegAudioExtractor implements AudioExtractor {
                 : new AudioExtractionException(code, Optional.of(BACKEND_ID), message, cause);
     }
 
-}
-
     private record Capture(byte[] bytes, boolean truncated) {}
 
     private record WavInfo(int sampleRate, int channels, int bitsPerSample, long sampleFrames) {}
