@@ -19,9 +19,9 @@ class FfmpegCapabilityInspectorTest {
                 case "$*" in
                   *-version*) echo 'ffmpeg version 7.1-test';;
                   *-decoders*) printf ' V..... h264 H.264 decoder\\n A..... aac AAC decoder\\n';;
-                  *-encoders*) printf ' V..... libx264 H.264 encoder\\n A..... aac AAC encoder\\n';;
+                  *-encoders*) printf ' V..... libx264 H.264 encoder\\n A..... aac AAC encoder\\n A..... pcm_s16le PCM encoder\\n';;
                   *-filters*) printf ' ... scale V->V scale video\\n ... aresample A->A resample audio\\n';;
-                  *-muxers*) printf ' E mp4 MP4 format\\n E matroska Matroska format\\n';;
+                  *-muxers*) printf ' E mp4 MP4 format\\n E matroska Matroska format\\n E wav WAV format\\n';;
                   *-demuxers*) printf ' D mov MOV format\\n D matroska Matroska format\\n';;
                 esac
                 """);
@@ -39,7 +39,7 @@ class FfmpegCapabilityInspectorTest {
         var descriptor = report.providerDescriptor(10);
         assertEquals(ProviderAvailability.AVAILABLE, descriptor.availability());
         assertTrue(descriptor.supports(MediaCapability.VIDEO_DECODE));
-        assertTrue(descriptor.supports(MediaCapability.AUDIO_RESAMPLE));
+        assertTrue(descriptor.supports(MediaCapability.AUDIO_RESAMPLE));\n        assertTrue(descriptor.supports(MediaCapability.AUDIO_EXTRACTION));
         assertFalse(descriptor.supports(MediaCapability.HARDWARE_ACCELERATION));
     }
 
