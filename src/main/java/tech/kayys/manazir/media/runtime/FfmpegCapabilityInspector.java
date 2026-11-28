@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public final class FfmpegCapabilityInspector {
     private static final int OUTPUT_LIMIT = 2 * 1024 * 1024;
-    private static final Pattern CODEC = Pattern.compile("^\\s*([D.EVAS]{6})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
+    private static final Pattern CODEC = Pattern.compile("^\\s*([VAS.]{6})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
     private static final Pattern FILTER = Pattern.compile("^\\s*([TSC.]{3})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
     private static final Pattern FORMAT = Pattern.compile("^\\s*([D.E]{1,2})\\s+([A-Za-z0-9_,.-]+)\\s+.*$");
 
@@ -49,10 +49,10 @@ public final class FfmpegCapabilityInspector {
         String muxers = run("-hide_banner", "-muxers");
         String demuxers = run("-hide_banner", "-demuxers");
 
-        Set<String> videoDecoders = codecs(decoders, 'D', 'V');
-        Set<String> audioDecoders = codecs(decoders, 'D', 'A');
-        Set<String> videoEncoders = codecs(encoders, 'E', 'V');
-        Set<String> audioEncoders = codecs(encoders, 'E', 'A');
+        Set<String> videoDecoders = codecs(decoders, 'V');
+        Set<String> audioDecoders = codecs(decoders, 'A');
+        Set<String> videoEncoders = codecs(encoders, 'V');
+        Set<String> audioEncoders = codecs(encoders, 'A');
         Set<String> filterNames = entries(filters, FILTER, 2);
         Set<String> muxerNames = formats(muxers, 'E');
         Set<String> demuxerNames = formats(demuxers, 'D');
@@ -118,13 +118,13 @@ public final class FfmpegCapabilityInspector {
         }
     }
 
-    private static Set<String> codecs(String output, char operation, char mediaType) {
+    private static Set<String> codecs(String output, char mediaType) {
         Set<String> result = new LinkedHashSet<>();
         for (String line : output.lines().toList()) {
             Matcher matcher = CODEC.matcher(line);
             if (matcher.matches()) {
                 String flags = matcher.group(1);
-                if (flags.charAt(0) == operation && flags.charAt(2) == mediaType) result.add(matcher.group(2));
+                if (flags.charAt(0) == mediaType) result.add(matcher.group(2));
             }
         }
         return Set.copyOf(result);
