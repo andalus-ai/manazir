@@ -43,7 +43,7 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
 - [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
 - [x] Extract one timestamped video frame to a caller-selected PNG/JPEG artifact using the FFmpeg process adapter.
-- [x] Extract a selected audio stream interval to caller-selected PCM WAV with bounded execution and output.
+- [x] Extract a selected audio stream interval to caller-selected PCM WAV with bounded execution and output.\n- [x] Capture bounded FFmpeg stderr asynchronously and include useful diagnostics in structured failures.
 - [ ] Add frame sequences, encoded audio formats, cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
 **Current slice:** local-file metadata probing, single-frame PNG/JPEG extraction, and audio-to-WAV extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction reports actual decoded-frame PTS when available. Audio extraction preserves requested rational boundaries, selects an explicit stream, emits validated PCM S16LE WAV, and reports the actual sample-frame count. Packet timestamp provenance, typed multi-frame enumeration, encoded audio formats, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
