@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  */
 public final class FfmpegCapabilityInspector {
     private static final int OUTPUT_LIMIT = 2 * 1024 * 1024;
-    private static final Pattern CODEC = Pattern.compile("^\\s*([VAS.]{6})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
+    private static final Pattern CODEC = Pattern.compile("^\\s*([A-Z.]{6})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
     private static final Pattern FILTER = Pattern.compile("^\\s*([TSC.]{3})\\s+([A-Za-z0-9_.-]+)\\s+.*$");
     private static final Pattern FORMAT = Pattern.compile("^\\s*([D.E]{1,2})\\s+([A-Za-z0-9_,.-]+)\\s+.*$");
 
