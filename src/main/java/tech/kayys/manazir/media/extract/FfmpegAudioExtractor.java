@@ -203,11 +203,6 @@ public final class FfmpegAudioExtractor implements AudioExtractor {
         return buffer.flip();
     }
 
-    private static boolean ascii(byte[] bytes, int offset, String value) {
-        for (int i = 0; i < value.length(); i++) if (bytes[offset + i] != (byte) value.charAt(i)) return false;
-        return true;
-    }
-
     private static String seconds(MediaTimestamp timestamp) {
         return BigDecimal.valueOf(timestamp.ticks()).multiply(BigDecimal.valueOf(timestamp.timeBase().numerator()))
                 .divide(BigDecimal.valueOf(timestamp.timeBase().denominator()), 12, RoundingMode.HALF_UP)
