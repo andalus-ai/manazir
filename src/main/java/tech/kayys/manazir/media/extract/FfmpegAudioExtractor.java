@@ -1,6 +1,8 @@
 package tech.kayys.manazir.media.extract;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URI;
@@ -12,6 +14,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import tech.kayys.manazir.media.time.MediaTimestamp;
 
@@ -21,6 +25,7 @@ import tech.kayys.manazir.media.time.MediaTimestamp;
  */
 public final class FfmpegAudioExtractor implements AudioExtractor {
     public static final String BACKEND_ID = "ffmpeg-process";
+    private static final long DIAGNOSTIC_LIMIT_BYTES = 64 * 1024;
     private final String executable;
 
     public FfmpegAudioExtractor() { this("ffmpeg"); }
@@ -91,29 +96,75 @@ public final class FfmpegAudioExtractor implements AudioExtractor {
         try {
             process = new ProcessBuilder(args)
                     .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                    .redirectError(ProcessBuilder.Redirect.DISCARD)
                     .start();
         } catch (IOException exception) {
             throw failure(AudioExtractionException.Code.BACKEND_UNAVAILABLE,
                     "Unable to start FFmpeg executable '" + executable + "'", exception);
         }
+
+        CompletableFuture<Capture> diagnostics = captureAsync(process.getErrorStream(), DIAGNOSTIC_LIMIT_BYTES, process);
         try {
             if (!process.waitFor(timeoutMillis(request.timeout()), TimeUnit.MILLISECONDS)) {
                 terminate(process);
                 process.waitFor();
+                diagnostics.get();
                 throw failure(AudioExtractionException.Code.TIMEOUT, "FFmpeg exceeded timeout of " + request.timeout(), null);
             }
+            Capture captured = diagnostics.get();
+            if (captured.truncated()) {
+                throw failure(AudioExtractionException.Code.RESOURCE_LIMIT,
+                        "FFmpeg diagnostic output exceeded " + DIAGNOSTIC_LIMIT_BYTES + " bytes; process was terminated", null);
+            }
             if (process.exitValue() != 0) {
-                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED,
-                        "FFmpeg exited with code " + process.exitValue() + " while extracting audio", null);
+                String detail = new String(captured.bytes(), java.nio.charset.StandardCharsets.UTF_8).strip();
+                String message = "FFmpeg exited with code " + process.exitValue() + " while extracting audio";
+                if (!detail.isEmpty()) message += ": " + detail;
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, message, null);
             }
         } catch (InterruptedException exception) {
             terminate(process);
             Thread.currentThread().interrupt();
             throw failure(AudioExtractionException.Code.CANCELLED, "FFmpeg audio extraction was interrupted", exception);
+        } catch (ExecutionException exception) {
+            terminate(process);
+            throw failure(AudioExtractionException.Code.EXTRACTION_FAILED,
+                    "Unable to collect FFmpeg diagnostics", exception.getCause());
         } finally {
             if (process.isAlive()) terminate(process);
         }
+    }
+
+    private static CompletableFuture<Capture> captureAsync(InputStream input, long limit, Process process) {
+        CompletableFuture<Capture> future = new CompletableFuture<>();
+        Thread.ofVirtual().start(() -> {
+            try (input) {
+                future.complete(capture(input, limit, process));
+            } catch (IOException exception) {
+                future.completeExceptionally(exception);
+            }
+        });
+        return future;
+    }
+
+    private static Capture capture(InputStream input, long limit, Process process) throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream((int) Math.min(limit, 8192));
+        byte[] buffer = new byte[4096];
+        long captured = 0;
+        boolean truncated = false;
+        int read;
+        while ((read = input.read(buffer)) != -1) {
+            int keep = (int) Math.min(read, Math.max(0, limit - captured));
+            if (keep > 0) {
+                output.write(buffer, 0, keep);
+                captured += keep;
+            }
+            if (keep < read) {
+                truncated = true;
+                terminate(process);
+                break;
+            }
+        }
+        return new Capture(output.toByteArray(), truncated);
     }
 
     /**
@@ -245,5 +296,5 @@ public final class FfmpegAudioExtractor implements AudioExtractor {
                 : new AudioExtractionException(code, Optional.of(BACKEND_ID), message, cause);
     }
 
-    private record WavInfo(int sampleRate, int channels, int bitsPerSample, long sampleFrames) {}
+    private record Capture(byte[] bytes, boolean truncated) {}\n\n    private record WavInfo(int sampleRate, int channels, int bitsPerSample, long sampleFrames) {}
 }
