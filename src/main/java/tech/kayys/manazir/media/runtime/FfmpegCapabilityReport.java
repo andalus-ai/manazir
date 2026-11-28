@@ -33,8 +33,8 @@ public record FfmpegCapabilityReport(
     public Set<MediaCapability> verifiedCapabilities() {
         var result = new java.util.LinkedHashSet<MediaCapability>();
         if (!videoDecoders.isEmpty()) result.add(MediaCapability.VIDEO_DECODE);
-        if (!audioDecoders.isEmpty()) {
-            result.add(MediaCapability.AUDIO_DECODE);
+        if (!audioDecoders.isEmpty()) result.add(MediaCapability.AUDIO_DECODE);
+        if (!audioDecoders.isEmpty() && audioEncoders.contains("pcm_s16le") && muxers.contains("wav")) {
             result.add(MediaCapability.AUDIO_EXTRACTION);
         }
         if (!videoEncoders.isEmpty()) result.add(MediaCapability.VIDEO_ENCODE);
