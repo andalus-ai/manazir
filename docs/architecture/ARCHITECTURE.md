@@ -30,13 +30,17 @@ The public probe port lives under `tech.kayys.manazir.media.probe`; the initial 
 `MediaProviderRegistry<T>` is an explicit, immutable registry of provider instances and descriptors. A descriptor declares provider ID, supported `MediaCapability` values, availability evidence, priority and diagnostic. The registry itself never discovers providers, loads native libraries or executes tools.
 
 - `ExecutableAvailabilityCheck` explicitly runs an executable's `-version` command with a timeout. It establishes only that the process can run; it does not prove codec, container, decode, encode or filter support.
+- `FfmpegCapabilityInspector` separately runs bounded FFmpeg listing commands for decoders, encoders, filters, muxers and demuxers. The immutable report retains operation names and version evidence, and can create a descriptor for explicit registration.
+- Decoder and encoder tables are parsed independently; a codec appearing in a table is evidence that the build advertises it, not proof that a particular input will decode or encode successfully.
+- The report derives broad operation capabilities from non-empty media-specific tables and named filters. It does not infer hardware acceleration or successful operation for every codec/container combination.
+- Inspection has per-command timeouts and a 2 MiB combined stdout/stderr capture limit. Failures are structured (unavailable executable, command failure, timeout, output limit, interruption).
 - Native availability must come from the existing explicit native load/version/symbol verification path. Merely finding a shared library is not sufficient.
 - Unknown availability is not eligible for automatic selection.
 - Selection is deterministic: higher priority first, then provider ID.
 - An explicitly requested provider is strict by default. Fallback requires `ALLOW_FALLBACK` and is returned in selection diagnostics; there is no hidden fallback.
 - Register only capabilities actually implemented by that provider. FFprobe metadata probing is `MEDIA_PROBE`; the single-frame FFmpeg process adapter requires decode capability and must not be advertised as transcode/filter/mux support.
 
-The selector is generic so probe, extraction and later execution ports can use the same policy without coupling the registry to product-specific APIs. See the provider selection tests for empty registry, unknown/unavailable providers, unsupported operations, deterministic ordering and explicit fallback.
+The selector is generic so probe, extraction and later execution ports can use the same policy without coupling the registry to product-specific APIs. Capability inspection is opt-in and does not mutate registries or execute media operations.
 
 ## Backend strategy
 Native FFM backend offers in-process efficiency but requires strict ABI/platform validation and memory safety. Process backend offers process boundaries and broader deployment flexibility but incurs process/serialization overhead; it is not a security sandbox by itself. Both implement the same typed contracts. Select backend by explicit configuration/capability, not hidden fallback that changes semantics.
