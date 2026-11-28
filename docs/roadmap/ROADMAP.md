@@ -21,7 +21,8 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [ ] Pin FFmpeg headers, jextract version, and exact generation inputs.
 - [ ] Regenerate FFmpeg-specific bindings and isolate them from host C runtime declarations.
 - [ ] Define and test the supported FFmpeg ABI/version matrix.
-- [ ] Add codec/container enumeration, hardware-device discovery, and real execution probes before advertising those capabilities.
+- [x] Add bounded FFmpeg decoder, encoder, filter, muxer and demuxer capability-table inspection.
+- [ ] Add hardware-device discovery and real execution probes before advertising those capabilities.
 - [ ] Add native integration CI after the platform matrix is pinned.
 
 **Exit criteria:** a clean checkout builds reproducibly; ordinary API types load without native libraries; supported native environments report verified component API surfaces; exact timestamp semantics are tested.
@@ -38,7 +39,7 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Verify actual FFprobe behavior against the installed FFmpeg/FFprobe toolchain.
 - [x] Add deterministic capability-based provider selection with explicit availability, strict selection and opt-in fallback.
 - [x] Wire registry-backed facades into the probe and frame-extraction ports; selection failures map to structured backend-unavailable errors.
-- [ ] Connect provider registration to verified runtime capability assessment and explicit application configuration.
+- [x] Connect FFmpeg capability reports to evidence-bearing provider descriptors for explicit application registration.
 - [ ] Add a native FFM provider after reproducible `avformat`/`avcodec` bindings and ABI verification.
 - [x] Expose optional decoded-frame PTS and its rational filter-input time base in extracted frame artifacts.
 - [ ] Add packet timestamp provenance and typed multi-frame/stream timestamp enumeration.
@@ -46,7 +47,7 @@ The roadmap separates portable handwritten media APIs from generated native ABI 
 - [x] Extract a selected audio stream interval to caller-selected PCM WAV with bounded execution and output.
 - [ ] Add frame sequences, encoded audio formats, cancellation tokens, OS-level CPU/memory/filesystem limits, concurrency limits and multi-tenant isolation.
 
-**Current slice:** local-file metadata probing, single-frame PNG/JPEG extraction, and audio-to-WAV extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction reports actual decoded-frame PTS when available. Audio extraction preserves requested rational boundaries, selects an explicit stream, emits validated PCM S16LE WAV, and reports the actual sample-frame count. Packet timestamp provenance, typed multi-frame enumeration, encoded audio formats, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
+**Current slice:** local-file metadata probing, single-frame PNG/JPEG extraction, and audio-to-WAV extraction work through explicit FFprobe/FFmpeg process adapters. Frame extraction reports actual decoded-frame PTS when available. Audio extraction preserves requested rational boundaries, selects an explicit stream, emits validated PCM S16LE WAV, and reports the actual sample-frame count. FFmpeg capability listing is now available as an explicit, bounded inspection API, but does not claim end-to-end codec success, hardware acceleration, native FFM support, or sandboxing. Packet timestamp provenance, typed multi-frame enumeration, encoded audio formats, native FFM support, OS-level sandboxing, cancellation and CPU/memory quotas remain open. Full M2 exit criteria are not yet met.
 
 ## M3 — Transcode, filter, and mux primitives
 
