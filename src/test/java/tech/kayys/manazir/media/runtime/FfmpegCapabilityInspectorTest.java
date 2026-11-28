@@ -46,9 +46,9 @@ class FfmpegCapabilityInspectorTest {
     @Test
     void doesNotInferCapabilitiesFromExecutablePresenceAlone() throws Exception {
         Path executable = script("""
-                case "$1" in
-                  -version) echo 'ffmpeg version minimal';;
-                  *-decoders*|-encoders*|-filters*|-muxers*|-demuxers*) echo 'no entries';;
+                case "$*" in
+                  *-version*) echo 'ffmpeg version minimal';;
+                  *-decoders*|*-encoders*|*-filters*|*-muxers*|*-demuxers*) echo 'no entries';;
                 esac
                 """);
         var report = new FfmpegCapabilityInspector(executable.toString(), Duration.ofSeconds(1)).inspect();
@@ -61,7 +61,7 @@ class FfmpegCapabilityInspectorTest {
         Path executable = script("""
                 case "$1" in
                   -version) exit 0;;
-                  -decoders) exit 9;;
+                  *-decoders*) exit 9;;
                 esac
                 """);
         var failure = assertThrows(FfmpegInspectionException.class,
