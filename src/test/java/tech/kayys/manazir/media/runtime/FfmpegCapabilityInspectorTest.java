@@ -39,7 +39,8 @@ class FfmpegCapabilityInspectorTest {
         var descriptor = report.providerDescriptor(10);
         assertEquals(ProviderAvailability.AVAILABLE, descriptor.availability());
         assertTrue(descriptor.supports(MediaCapability.VIDEO_DECODE));
-        assertTrue(descriptor.supports(MediaCapability.AUDIO_RESAMPLE));\n        assertTrue(descriptor.supports(MediaCapability.AUDIO_EXTRACTION));
+        assertTrue(descriptor.supports(MediaCapability.AUDIO_RESAMPLE));
+        assertTrue(descriptor.supports(MediaCapability.AUDIO_EXTRACTION));
         assertFalse(descriptor.supports(MediaCapability.HARDWARE_ACCELERATION));
     }
 
@@ -59,8 +60,8 @@ class FfmpegCapabilityInspectorTest {
     @Test
     void mapsNonZeroListingCommandToStructuredFailure() throws Exception {
         Path executable = script("""
-                case "$1" in
-                  -version) exit 0;;
+                case "$*" in
+                  *-version*) exit 0;;
                   *-decoders*) exit 9;;
                 esac
                 """);
@@ -74,7 +75,7 @@ class FfmpegCapabilityInspectorTest {
         Path executable = script("""
                 case "$1" in
                   -version) echo 'ffmpeg version test';;
-                  -decoders) sleep 2;;
+                  *-decoders*) sleep 2;;
                 esac
                 """);
         var failure = assertThrows(FfmpegInspectionException.class,
