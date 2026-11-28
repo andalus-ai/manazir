@@ -30,9 +30,11 @@ The handwritten Java 22 Maven build includes exact-time primitives, backend-neut
 
 `MediaProviderRegistry<T>` is an explicit immutable registry. Providers declare supported `MediaCapability` values, availability evidence, priority and diagnostics. Selection is deterministic (priority, then provider ID); an explicitly requested provider is strict unless the caller opts into `ALLOW_FALLBACK`. Unknown availability is never auto-selected. The registry does not discover providers or load native libraries.
 
-`ExecutableAvailabilityCheck` explicitly smoke-tests an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation. Native providers must use the explicit native load/version/symbol verification path before advertising capabilities.
+`ExecutableAvailabilityCheck` explicitly smoke-tests an executable's `-version` command with a timeout. This proves only that the process can run; it does not prove codec/container support or any media operation.
 
-The registry is now connected to both operation facades:
+`FfmpegCapabilityInspector` is a separate, explicit inspection step. It runs bounded `-version`, `-decoders`, `-encoders`, `-filters`, `-muxers`, and `-demuxers` commands and returns an immutable `FfmpegCapabilityReport`. The report derives capabilities only from the corresponding tables: video/audio decode and encode, filter graph, scale, audio resampling, mux, and demux. It does not infer hardware acceleration, successful decoding of every codec, or end-to-end operation success. The report can create a `MediaProviderDescriptor` for explicit registration; it does not mutate a registry or start media operations.
+
+The registry is connected to operation facades:
 - `SelectingMediaProbe` routes `MEDIA_PROBE` requests to a registered `MediaProbe`.
 - `SelectingFrameExtractor` routes `VIDEO_DECODE` requests to a registered `FrameExtractor`.
 
