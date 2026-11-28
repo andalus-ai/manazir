@@ -116,38 +116,91 @@ public final class FfmpegAudioExtractor implements AudioExtractor {
         }
     }
 
+    /**
+     * Reads RIFF chunks rather than assuming the 44-byte PCM header layout.
+     * FFmpeg and other WAV writers may place LIST/JUNK metadata chunks between
+     * the fmt and data chunks, and chunks are padded to an even byte boundary.
+     */
     private static WavInfo inspectWav(Path path) throws IOException, AudioExtractionException {
-        long size = Files.size(path);
-        if (size < 44) throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV header is truncated", null);
-        byte[] header = new byte[44];
-        try (var input = Files.newInputStream(path)) {
-            if (input.readNBytes(header, 0, header.length) != header.length) {
-                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV header is truncated", null);
+        long fileSize = Files.size(path);
+        if (fileSize < 12) {
+            throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV header is truncated", null);
+        }
+
+        try (var channel = java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.READ)) {
+            ByteBuffer riff = readAt(channel, 0, 12);
+            byte[] signature = new byte[4];
+            riff.get(signature);
+            if (!new String(signature, java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF")) {
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "Output is not a RIFF WAV file", null);
             }
+            long riffSize = Integer.toUnsignedLong(riff.getInt());
+            riff.get(signature);
+            if (!new String(signature, java.nio.charset.StandardCharsets.US_ASCII).equals("WAVE")
+                    || riffSize < 4 || riffSize > fileSize - 8) {
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV RIFF container has an invalid size or signature", null);
+            }
+
+            long riffEnd = 8 + riffSize;
+            long offset = 12;
+            Integer format = null;
+            Integer channels = null;
+            Long sampleRate = null;
+            Integer bits = null;
+            Long dataBytes = null;
+
+            while (offset + 8 <= riffEnd) {
+                ByteBuffer chunkHeader = readAt(channel, offset, 8);
+                chunkHeader.get(signature);
+                long chunkSize = Integer.toUnsignedLong(chunkHeader.getInt());
+                long payload = offset + 8;
+                long chunkEnd = payload + chunkSize;
+                if (chunkEnd < payload || chunkEnd > riffEnd) {
+                    throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV contains a truncated RIFF chunk", null);
+                }
+
+                String chunkId = new String(signature, java.nio.charset.StandardCharsets.US_ASCII);
+                if (chunkId.equals("fmt ")) {
+                    if (chunkSize < 16) {
+                        throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV fmt chunk is too short", null);
+                    }
+                    ByteBuffer fmt = readAt(channel, payload, 16);
+                    format = Short.toUnsignedInt(fmt.getShort());
+                    channels = Short.toUnsignedInt(fmt.getShort());
+                    sampleRate = Integer.toUnsignedLong(fmt.getInt());
+                    fmt.getInt(); // byte rate
+                    fmt.getShort(); // block alignment
+                    bits = Short.toUnsignedInt(fmt.getShort());
+                } else if (chunkId.equals("data")) {
+                    dataBytes = chunkSize;
+                }
+
+                offset = chunkEnd + (chunkSize & 1L);
+            }
+
+            if (format == null || channels == null || sampleRate == null || bits == null || dataBytes == null) {
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV is missing its fmt or data chunk", null);
+            }
+            if (format != 1 || bits != 16 || channels < 1 || sampleRate < 1) {
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV is not 16-bit integer PCM", null);
+            }
+            long bytesPerFrame = (long) channels * (bits / 8);
+            if (dataBytes == 0 || dataBytes > fileSize || dataBytes % bytesPerFrame != 0) {
+                throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV data chunk has invalid length", null);
+            }
+            return new WavInfo(Math.toIntExact(sampleRate), channels, bits, dataBytes / bytesPerFrame);
         }
-        ByteBuffer b = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN);
-        if (!ascii(header, 0, "RIFF") || !ascii(header, 8, "WAVE")
-                || !ascii(header, 12, "fmt ") || !ascii(header, 36, "data")) {
-            throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "Output is not a canonical PCM WAV file", null);
-        }
-        int format = Short.toUnsignedInt(b.getShort(20));
-        int channels = Short.toUnsignedInt(b.getShort(22));
-        long sampleRate = Integer.toUnsignedLong(b.getInt(24));
-        int bits = Short.toUnsignedInt(b.getShort(34));
-        long dataBytes = Integer.toUnsignedLong(b.getInt(40));
-        if (format != 1 || bits != 16 || channels < 1 || sampleRate < 1) {
-            throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV is not 16-bit integer PCM", null);
-        }
-        long bytesPerFrame = (long) channels * (bits / 8);
-        if (dataBytes == 0 || dataBytes > size - 44 || dataBytes % bytesPerFrame != 0) {
-            throw failure(AudioExtractionException.Code.EXTRACTION_FAILED, "WAV data chunk has invalid length", null);
-        }
-        return new WavInfo(Math.toIntExact(sampleRate), channels, bits, dataBytes / bytesPerFrame);
     }
 
-    private static boolean ascii(byte[] bytes, int offset, String value) {
-        for (int i = 0; i < value.length(); i++) if (bytes[offset + i] != (byte) value.charAt(i)) return false;
-        return true;
+    private static ByteBuffer readAt(java.nio.channels.FileChannel channel, long position, int length)
+            throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
+        while (buffer.hasRemaining()) {
+            int read = channel.read(buffer, position + buffer.position());
+            if (read < 0) throw new IOException("Unexpected end of WAV file");
+            if (read == 0) Thread.onSpinWait();
+        }
+        return buffer.flip();
     }
 
     private static String seconds(MediaTimestamp timestamp) {
