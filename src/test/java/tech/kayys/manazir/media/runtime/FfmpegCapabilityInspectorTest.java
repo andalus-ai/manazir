@@ -16,13 +16,13 @@ class FfmpegCapabilityInspectorTest {
     @Test
     void parsesOperationTablesAndCreatesEvidenceBackedDescriptor() throws Exception {
         Path executable = script("""
-                case "$1" in
-                  -version) echo 'ffmpeg version 7.1-test';;
-                  -decoders) printf ' V..... h264 H.264 decoder\\n A..... aac AAC decoder\\n';;
-                  -encoders) printf ' V..... libx264 H.264 encoder\\n A..... aac AAC encoder\\n';;
-                  -filters) printf ' ... scale V->V scale video\\n ... aresample A->A resample audio\\n';;
-                  -muxers) printf ' E mp4 MP4 format\\n E matroska Matroska format\\n';;
-                  -demuxers) printf ' D mov MOV format\\n D matroska Matroska format\\n';;
+                case "$*" in
+                  *-version*) echo 'ffmpeg version 7.1-test';;
+                  *-decoders*) printf ' V..... h264 H.264 decoder\\n A..... aac AAC decoder\\n';;
+                  *-encoders*) printf ' V..... libx264 H.264 encoder\\n A..... aac AAC encoder\\n';;
+                  *-filters*) printf ' ... scale V->V scale video\\n ... aresample A->A resample audio\\n';;
+                  *-muxers*) printf ' E mp4 MP4 format\\n E matroska Matroska format\\n';;
+                  *-demuxers*) printf ' D mov MOV format\\n D matroska Matroska format\\n';;
                 esac
                 """);
         var report = new FfmpegCapabilityInspector(executable.toString(), Duration.ofSeconds(1)).inspect();
@@ -48,7 +48,7 @@ class FfmpegCapabilityInspectorTest {
         Path executable = script("""
                 case "$1" in
                   -version) echo 'ffmpeg version minimal';;
-                  -decoders|-encoders|-filters|-muxers|-demuxers) echo 'no entries';;
+                  *-decoders*|-encoders*|-filters*|-muxers*|-demuxers*) echo 'no entries';;
                 esac
                 """);
         var report = new FfmpegCapabilityInspector(executable.toString(), Duration.ofSeconds(1)).inspect();
@@ -91,7 +91,7 @@ class FfmpegCapabilityInspectorTest {
 
     private Path script(String body) throws IOException {
         Path path = tempDir.resolve("fake-ffmpeg-" + UUID.randomUUID() + ".sh");
-        Files.writeString(path, "#!/bin/sh\\n" + body + "\\n");
+        Files.writeString(path, "#!/bin/sh\n" + body + "\n");
         if (!path.toFile().setExecutable(true)) throw new IOException("cannot make test executable");
         return path;
     }
