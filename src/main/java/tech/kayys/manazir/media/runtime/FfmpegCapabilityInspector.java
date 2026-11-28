@@ -93,7 +93,7 @@ public final class FfmpegCapabilityInspector {
             }
         });
         try {
-            if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
+            if (!process.waitFor(timeoutMillis(), TimeUnit.MILLISECONDS)) {
                 terminate(process);
                 throw new FfmpegInspectionException(FfmpegInspectionException.Code.TIMEOUT,
                         "FFmpeg command exceeded timeout " + timeout + ": " + arguments[0]);
@@ -148,6 +148,14 @@ public final class FfmpegCapabilityInspector {
             if (matcher.matches()) result.add(matcher.group(nameGroup));
         }
         return Set.copyOf(result);
+    }
+
+    private long timeoutMillis() {
+        try {
+            return Math.max(1, timeout.toMillis());
+        } catch (ArithmeticException exception) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private static void terminate(Process process) {
